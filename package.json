@@ -1,0 +1,76 @@
+{
+  "name": "vue-multi-router",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Vue 3 multi router",
+  "author": "",
+  "license": "MIT",
+  "homepage": "https://github.com/lviobio/vue-multi-router#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lviobio/vue-multi-router.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lviobio/vue-multi-router/issues"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "check": "npm run ts:check && npm run lint:check && npm run format:check && npm run dependency-cruiser:check",
+    "ts:check": "vue-tsc --noEmit",
+    "format": "prettier --write src/",
+    "format:check": "prettier --check src/",
+    "lint": "eslint . --fix",
+    "lint:check": "eslint .",
+    "dependency-cruiser:check": "depcruise --config .dependency-cruiser.cjs src",
+    "play": "vite",
+    "build:playground": "vite build",
+    "preview:playground": "vite preview --outDir playground/dist",
+    "test": "vitest run",
+    "release": "bumpp && npm publish",
+    "prepublishOnly": "npm run check && npm run test && npm run build"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.0",
+    "vue-router": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.17.21",
+    "@types/node": "^25.0.3",
+    "@vitejs/plugin-vue": "^6.0.3",
+    "@vitest/browser-playwright": "^4.0.16",
+    "@vitest/coverage-v8": "^4.0.16",
+    "@vue/eslint-config-typescript": "^14.6.0",
+    "@vue/test-utils": "^2.4.6",
+    "bumpp": "^10.3.2",
+    "dependency-cruiser": "^17.3.6",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-vue": "^10.6.2",
+    "happy-dom": "^20.1.0",
+    "jsdom": "^27.4.0",
+    "playwright": "^1.57.0",
+    "prettier": "^3.7.4",
+    "tsdown": "^0.18.4",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.51.0",
+    "vite": "^7.3.0",
+    "vitest": "^4.0.16",
+    "vitest-browser-vue": "^2.0.1",
+    "vue": "^3.5.26",
+    "vue-tsc": "^3.2.1"
+  }
+}

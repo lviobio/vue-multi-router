@@ -43,7 +43,6 @@ const routes = [
 
 export const multiRouter = createMultiRouter({
   history: () => createWebHistory(import.meta.env.BASE_URL),
-  // historyOptions: {},
   types: {
     main: { canUseAsHistoryContext: true, single: true },
     card: { canUseAsHistoryContext: false, single: false },

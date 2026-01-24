@@ -93,27 +93,8 @@ function installContextAwareRouterResolvers(app: App, contextManager: MultiRoute
     /**
      * Called by RouterView component
      */
-    set(value) {
-      const instance = getCurrentInstance()
-
-      const originalPrototype = Object.getPrototypeOf(instance.provides)
-      const originalProperties = Object.getOwnPropertyDescriptors(instance.provides)
-
-      // @ts-expect-error - Dynamic key destructuring
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { [routerViewLocationKey]: _, ...filteredProperties } = originalProperties
-
-      instance.provides = Object.defineProperties(
-        Object.create(originalPrototype),
-        filteredProperties,
-      )
-
-      Object.defineProperty(instance.provides, routerViewLocationKey, {
-        value,
-        writable: true,
-        enumerable: true,
-        configurable: true,
-      })
+    set() {
+      // Do nothing
     },
   })
 }
@@ -151,7 +132,7 @@ export const contextTemplateTabsWithWindows = {
 
 type CustomRouterOptions = Omit<RouterOptions, 'history'> & {
   history: () => RouterHistory
-  historyOptions: MultiRouterHistoryManagerOptions
+  historyOptions?: MultiRouterHistoryManagerOptions
   types: ContextTypes
 }
 

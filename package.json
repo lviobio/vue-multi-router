@@ -36,7 +36,7 @@
     "lint": "eslint . --fix",
     "lint:check": "eslint .",
     "dependency-cruiser:check": "depcruise --config .dependency-cruiser.cjs src",
-    "play": "vite",
+    "play": "vite --port 5174",
     "build:playground": "vite build",
     "preview:playground": "vite preview --outDir playground/dist",
     "test": "vitest run",

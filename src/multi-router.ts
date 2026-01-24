@@ -11,6 +11,8 @@ import {
 import {
   createRouter,
   routeLocationKey,
+  type RouteLocationNormalized,
+  type RouteLocationNormalizedLoaded,
   type Router,
   type RouterHistory,
   routerKey,
@@ -19,6 +21,18 @@ import {
   RouterView,
   routerViewLocationKey,
 } from 'vue-router'
+
+const START_LOCATION_NORMALIZED = {
+  path: '/',
+  name: undefined,
+  params: {},
+  query: {},
+  hash: '',
+  fullPath: '/',
+  matched: [],
+  meta: {},
+  redirectedFrom: undefined,
+}
 
 const getCurrentInstance = () =>
   _getCurrentInstance() as ComponentInternalInstance & {
@@ -71,7 +85,17 @@ function installContextAwareRouterResolvers(app: App, contextManager: MultiRoute
       const contextKey = getInstanceContextKey()
       if (!contextKey || !contextManager.has(contextKey)) return null
 
-      return contextManager.getRouter(contextKey).currentRoute.value
+      const currentRoute = contextManager.getRouter(contextKey).currentRoute
+
+      const reactiveRoute = {} as RouteLocationNormalizedLoaded
+      for (const key in START_LOCATION_NORMALIZED) {
+        Object.defineProperty(reactiveRoute, key, {
+          get: () => currentRoute.value[key as keyof RouteLocationNormalized],
+          enumerable: true,
+        })
+      }
+
+      return reactiveRoute
     },
   }
 

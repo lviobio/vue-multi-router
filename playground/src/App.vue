@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import { NConfigProvider, NMessageProvider } from 'naive-ui'
+import './style.css'
+import { MultiRouterContext, MultiRouterContextActivator } from '../../src'
 </script>
 
 <template>
   <NConfigProvider>
     <NMessageProvider>
-      <RouterView />
+      <MultiRouterContext type="main" name="main" default>
+        <MultiRouterContextActivator>
+          <RouterView />
+        </MultiRouterContextActivator>
+      </MultiRouterContext>
     </NMessageProvider>
   </NConfigProvider>
 </template>
@@ -17,7 +23,13 @@ import { NConfigProvider, NMessageProvider } from 'naive-ui'
 
 body {
   margin: 0;
-  font-family: v-sans, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family:
+    v-sans,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

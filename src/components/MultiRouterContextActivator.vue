@@ -21,7 +21,7 @@ export default defineComponent({
     const onActivate = (e: MouseEvent) => {
       e.stopPropagation()
       if (manager.setActive(contextKey, true)) {
-        // console.log('[MultiRouterContextActivator] activated', contextKey)
+        console.debug('[MultiRouterContextActivator] activated', contextKey)
       }
     }
 

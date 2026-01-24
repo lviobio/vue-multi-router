@@ -103,11 +103,11 @@ export class MultiRouterManagerInstance {
     }
 
     if (modified) {
-      // console.log('[MultiRouterContextManager] setActive', {
-      //   key,
-      //   updateHistory,
-      //   historyEnabled: item.historyEnabled,
-      // })
+      console.debug('[MultiRouterContextManager] setActive', {
+        key,
+        updateHistory,
+        historyEnabled: item.historyEnabled,
+      })
     }
 
     return modified
@@ -187,7 +187,7 @@ export class MultiRouterManagerInstance {
           this.historyManager.tryRestoreActiveHistoryContext(key),
           (restored: boolean) => {
             if (restored && !this.activeHistoryContext.value) {
-              // console.log('[MultiRouterContextManager] Restored activeHistoryContext', { key })
+              console.debug('[MultiRouterContextManager] Restored activeHistoryContext', { key })
               this.activeHistoryContext.value = { key, context: this.registered.get(key)! }
             }
           },
@@ -198,14 +198,16 @@ export class MultiRouterManagerInstance {
         const lastActiveKey = this.historyManager.getLastActiveContextKey()
         mapMaybePromise(lastActiveKey, (resolvedLastActiveKey: string | null) => {
           if (resolvedLastActiveKey === key && !this.activeContext.value) {
-            // console.log('[MultiRouterContextManager] Auto-activating last active context', { key })
+            console.debug('[MultiRouterContextManager] Auto-activating last active context', {
+              key,
+            })
             this.setActive(key, true)
           } else if (isDefault && !resolvedLastActiveKey && !this.activeContext.value) {
             // Only activate default if there's no saved context in storage
-            // console.log('[MultiRouterContextManager] Activating default context', {
-            //   key,
-            //   historyEnabled,
-            // })
+            console.debug('[MultiRouterContextManager] Activating default context', {
+              key,
+              historyEnabled,
+            })
             this.setActive(key, true)
           }
         })
@@ -224,7 +226,7 @@ export class MultiRouterManagerInstance {
   public unregister(key: string) {
     const context = this.registered.get(key)
     if (context) {
-      // console.log('[MultiRouterContextManager] unregister', { key })
+      console.debug('[MultiRouterContextManager] unregister', { key })
       this.historyManager.removeContextHistory(key)
       this.registered.delete(key)
     }

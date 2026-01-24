@@ -35,12 +35,12 @@ const MultiRouterContextInner = defineComponent({
   setup(props, { slots }) {
     const manager = inject(multiRouterContextManagerKey)!
 
-    // console.log('[MultiRouterContext] setup', {
-    //   type: props.type,
-    //   name: props.name,
-    //   location: props.location,
-    //   initialLocation: props.initialLocation,
-    // })
+    console.debug('[MultiRouterContext] setup', {
+      type: props.type,
+      name: props.name,
+      location: props.location,
+      initialLocation: props.initialLocation,
+    })
 
     if (manager.has(props.name)) {
       console.warn(`[MultiRouterContext] Context "${props.name}" already registered, skipping`)

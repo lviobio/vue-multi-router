@@ -143,10 +143,10 @@ export class MultiRouterHistoryManager {
       if (location) {
         // Explicit location always has priority - force this URL
         const virtualStack = this.createInitialVirtualStack(location)
-        // console.log('[MultiRouterHistory] Created context with forced location', {
-        //   contextKey,
-        //   location,
-        // })
+        console.debug('[MultiRouterHistory] Created context with forced location', {
+          contextKey,
+          location,
+        })
         return this.finalizeContextCreation(contextKey, virtualStack, isLastActive, historyEnabled)
       }
 
@@ -164,36 +164,36 @@ export class MultiRouterHistoryManager {
               location: browserUrl,
               state: this.baseHistory.state ?? {},
             }
-            // console.log('[MultiRouterHistory] Restored from storage with browser URL', {
-            //   contextKey,
-            //   browserUrl,
-            // })
+            console.debug('[MultiRouterHistory] Restored from storage with browser URL', {
+              contextKey,
+              browserUrl,
+            })
           } else {
-            // console.log('[MultiRouterHistory] Restored from storage', {
-            //   contextKey,
-            //   historyEnabled,
-            // })
+            console.debug('[MultiRouterHistory] Restored from storage', {
+              contextKey,
+              historyEnabled,
+            })
           }
           virtualStack = restoredStack
         } else if (isLastActive && historyEnabled) {
           // No storage, but was last active with historyEnabled - use browser URL
           const browserUrl = this.baseHistory.location
           virtualStack = this.createInitialVirtualStack(browserUrl)
-          // console.log('[MultiRouterHistory] Created with browser URL (last active)', {
-          //   contextKey,
-          //   browserUrl,
-          // })
+          console.debug('[MultiRouterHistory] Created with browser URL (last active)', {
+            contextKey,
+            browserUrl,
+          })
         } else if (initialLocation) {
           // Use initialLocation as fallback
           virtualStack = this.createInitialVirtualStack(initialLocation)
-          // console.log('[MultiRouterHistory] Created with initialLocation', {
-          //   contextKey,
-          //   initialLocation,
-          // })
+          console.debug('[MultiRouterHistory] Created with initialLocation', {
+            contextKey,
+            initialLocation,
+          })
         } else {
           // Fallback to default '/'
           virtualStack = this.createInitialVirtualStack()
-          // console.log('[MultiRouterHistory] Created with default location', { contextKey })
+          console.debug('[MultiRouterHistory] Created with default location', { contextKey })
         }
 
         return this.finalizeContextCreation(contextKey, virtualStack, isLastActive, historyEnabled)
@@ -270,10 +270,10 @@ export class MultiRouterHistoryManager {
     // Use replace to change URL without adding a new history entry
     this.restoreUrlFromVirtualStack(contextKey)
 
-    // console.log('[MultiRouterHistory] setActiveHistoryContext', {
-    //   from: previousKey,
-    //   to: contextKey,
-    // })
+    console.debug('[MultiRouterHistory] setActiveHistoryContext', {
+      from: previousKey,
+      to: contextKey,
+    })
   }
 
   clearActiveHistoryContext(contextKey: string): void {
@@ -301,9 +301,9 @@ export class MultiRouterHistoryManager {
       this.activeHistoryContextKey = null
     }
 
-    // console.log('[MultiRouterHistory] fallbackToPreviousHistoryContext', {
-    //   to: this.activeHistoryContextKey,
-    // })
+    console.debug('[MultiRouterHistory] fallbackToPreviousHistoryContext', {
+      to: this.activeHistoryContextKey,
+    })
   }
 
   private createInitialVirtualStack(initialLocation?: string): VirtualStack {
@@ -352,22 +352,22 @@ export class MultiRouterHistoryManager {
     const stateContextKey = this.baseHistory.state?.[CONTEXT_KEY_STATE] as string | undefined
     const stateStackIndex = this.baseHistory.state?.[STACK_INDEX_STATE] as number | undefined
 
-    // console.log('[MultiRouterHistory] popstate raw', {
-    //   stateContextKey,
-    //   stateStackIndex,
-    //   browserTo: to,
-    //   browserFrom: from,
-    //   delta: info.delta,
-    //   virtualStacks: Object.fromEntries(
-    //     Array.from(this.stacks.entries()).map(([k, v]) => [
-    //       k,
-    //       {
-    //         position: v.virtualStack.position,
-    //         entries: v.virtualStack.entries.map((e) => e.location),
-    //       },
-    //     ]),
-    //   ),
-    // })
+    console.debug('[MultiRouterHistory] popstate raw', {
+      stateContextKey,
+      stateStackIndex,
+      browserTo: to,
+      browserFrom: from,
+      delta: info.delta,
+      virtualStacks: Object.fromEntries(
+        Array.from(this.stacks.entries()).map(([k, v]) => [
+          k,
+          {
+            position: v.virtualStack.position,
+            entries: v.virtualStack.entries.map((e) => e.location),
+          },
+        ]),
+      ),
+    })
 
     let ownerContextKey: string | null = null
     let targetStackIndex: number | null = null
@@ -405,15 +405,15 @@ export class MultiRouterHistoryManager {
 
       const targetLocation = context.virtualStack.entries[newPosition]?.location ?? to
 
-      // console.log('[MultiRouterHistory] popstate result', {
-      //   ownerContext: ownerContextKey,
-      //   activeContext: this.activeHistoryContextKey,
-      //   browserUrl: to,
-      //   contextUrl: targetLocation,
-      //   targetStackIndex: newPosition,
-      //   previousLocation,
-      //   delta: info.delta,
-      // })
+      console.debug('[MultiRouterHistory] popstate result', {
+        ownerContext: ownerContextKey,
+        activeContext: this.activeHistoryContextKey,
+        browserUrl: to,
+        contextUrl: targetLocation,
+        targetStackIndex: newPosition,
+        previousLocation,
+        delta: info.delta,
+      })
 
       // Activate the context that owns this history entry
       if (this.onContextActivate) {
@@ -437,13 +437,13 @@ export class MultiRouterHistoryManager {
       })
     }
 
-    // console.log('[MultiRouterHistory] push', {
-    //   contextKey,
-    //   to,
-    //   stackIndex,
-    //   isActive: this.activeHistoryContextKey === contextKey,
-    //   historyEnabled,
-    // })
+    console.debug('[MultiRouterHistory] push', {
+      contextKey,
+      to,
+      stackIndex,
+      isActive: this.activeHistoryContextKey === contextKey,
+      historyEnabled,
+    })
   }
 
   replace(contextKey: string, to: HistoryLocation, data?: HistoryState): void {
@@ -459,13 +459,13 @@ export class MultiRouterHistoryManager {
       })
     }
 
-    // console.log('[MultiRouterHistory] replace', {
-    //   contextKey,
-    //   to,
-    //   stackIndex,
-    //   isActive: this.activeHistoryContextKey === contextKey,
-    //   historyEnabled,
-    // })
+    console.debug('[MultiRouterHistory] replace', {
+      contextKey,
+      to,
+      stackIndex,
+      isActive: this.activeHistoryContextKey === contextKey,
+      historyEnabled,
+    })
   }
 
   go(contextKey: string, delta: number, triggerListeners = true): void {

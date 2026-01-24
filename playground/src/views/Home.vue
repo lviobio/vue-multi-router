@@ -4,9 +4,7 @@ import { NCard, NButton, NSpace, NAlert } from 'naive-ui'
 
 <template>
   <NSpace vertical>
-    <NAlert title="Welcome" type="info">
-      This is a demo playground for Vue Multi Router with Naive UI.
-    </NAlert>
+    <NAlert title="Welcome" type="info">This is a demo playground for Vue Multi Router.</NAlert>
 
     <NCard title="Getting Started">
       <NSpace>

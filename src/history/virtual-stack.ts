@@ -177,6 +177,30 @@ export class VirtualStackManager {
     return this.storage.getActiveHistoryContext()
   }
 
+  clearActiveContext(): MaybePromise<void> {
+    return this.storage.clearActiveContext()
+  }
+
+  clearActiveHistoryContext(): MaybePromise<void> {
+    return this.storage.clearActiveHistoryContext()
+  }
+
+  saveContextStack(stack: string[]): MaybePromise<void> {
+    return this.storage.saveContextStack(stack)
+  }
+
+  getContextStack(): MaybePromise<string[]> {
+    return this.storage.getContextStack()
+  }
+
+  saveHistoryContextStack(stack: string[]): MaybePromise<void> {
+    return this.storage.saveHistoryContextStack(stack)
+  }
+
+  getHistoryContextStack(): MaybePromise<string[]> {
+    return this.storage.getHistoryContextStack()
+  }
+
   // Iteration
   entries(): IterableIterator<[string, ContextHistoryState]> {
     return this.contexts.entries()

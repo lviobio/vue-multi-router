@@ -102,6 +102,7 @@ export class MultiRouterHistoryManager {
   private stacks: VirtualStackManager
   private activeHistoryContextKey: string | null = null
   private historyContextStack: string[] = []
+  private contextStack: string[] = []
   private baseHistoryCleanup: (() => void) | null = null
   private contextSwitchMode: ContextSwitchMode
   private onContextActivate?: (contextKey: string) => void
@@ -112,6 +113,18 @@ export class MultiRouterHistoryManager {
     this.contextSwitchMode = options?.contextSwitchMode ?? 'replace'
     this.onContextActivate = options?.onContextActivate
     this.baseHistoryCleanup = this.baseHistory.listen(this.handlePopState.bind(this))
+
+    // Restore context stacks from storage
+    this.restoreContextStacks()
+  }
+
+  private restoreContextStacks(): void {
+    mapMaybePromise(this.stacks.getContextStack(), (stack) => {
+      this.contextStack = stack
+    })
+    mapMaybePromise(this.stacks.getHistoryContextStack(), (stack) => {
+      this.historyContextStack = stack
+    })
   }
 
   get base() {
@@ -243,7 +256,12 @@ export class MultiRouterHistoryManager {
       this.fallbackToPreviousHistoryContext()
     }
 
+    // Remove from both stacks
     this.historyContextStack = this.historyContextStack.filter((k) => k !== contextKey)
+    this.stacks.saveHistoryContextStack(this.historyContextStack)
+
+    this.contextStack = this.contextStack.filter((k) => k !== contextKey)
+    this.stacks.saveContextStack(this.contextStack)
   }
 
   setActiveHistoryContext(contextKey: string): void {
@@ -261,6 +279,10 @@ export class MultiRouterHistoryManager {
       this.historyContextStack = this.historyContextStack.filter((k) => k !== previousKey)
       this.historyContextStack.push(previousKey)
     }
+
+    // Remove new active context from stack (it shouldn't be there)
+    this.historyContextStack = this.historyContextStack.filter((k) => k !== contextKey)
+    this.stacks.saveHistoryContextStack(this.historyContextStack)
 
     this.activeHistoryContextKey = contextKey
     this.stacks.saveActiveContext(contextKey)
@@ -288,18 +310,73 @@ export class MultiRouterHistoryManager {
     this.stacks.saveActiveContext(contextKey)
   }
 
+  /**
+   * Push the current active context to the context stack before switching to a new one.
+   * This allows fallback to the previous context when the current one is removed.
+   */
+  pushToContextStack(contextKey: string): void {
+    // Remove if already in stack to avoid duplicates
+    this.contextStack = this.contextStack.filter((k) => k !== contextKey)
+    this.contextStack.push(contextKey)
+    this.stacks.saveContextStack(this.contextStack)
+  }
+
+  /**
+   * Get the previous context from the stack (for fallback when current context is removed).
+   * Returns null if no previous context exists.
+   */
+  popFromContextStack(): string | null {
+    const previousKey = this.contextStack.pop() ?? null
+    this.stacks.saveContextStack(this.contextStack)
+    return previousKey
+  }
+
+  /**
+   * Remove a context from the context stack (when the context is unregistered).
+   */
+  removeFromContextStack(contextKey: string): void {
+    this.contextStack = this.contextStack.filter((k) => k !== contextKey)
+    this.stacks.saveContextStack(this.contextStack)
+  }
+
+  /**
+   * Clear the active context from storage (when no contexts are left).
+   */
+  clearActiveContext(): void {
+    this.stacks.clearActiveContext()
+  }
+
   getActiveHistoryContextKey(): string | null {
     return this.activeHistoryContextKey
   }
 
   private fallbackToPreviousHistoryContext(): void {
-    const previousKey = this.historyContextStack.pop()
+    let previousKey = this.historyContextStack.pop()
+
+    // Find a valid previous context (one that still exists)
+    while (previousKey && !this.stacks.has(previousKey)) {
+      previousKey = this.historyContextStack.pop()
+    }
+
+    // If no previous context in stack, pick any registered context with historyEnabled
+    if (!previousKey) {
+      for (const [key, context] of this.stacks.entries()) {
+        if (context.historyEnabled) {
+          previousKey = key
+          break
+        }
+      }
+    }
 
     if (previousKey && this.stacks.has(previousKey)) {
       this.activeHistoryContextKey = previousKey
+      this.stacks.saveActiveHistoryContext(previousKey)
     } else {
       this.activeHistoryContextKey = null
+      this.stacks.clearActiveHistoryContext()
     }
+
+    this.stacks.saveHistoryContextStack(this.historyContextStack)
 
     console.debug('[MultiRouterHistory] fallbackToPreviousHistoryContext', {
       to: this.activeHistoryContextKey,

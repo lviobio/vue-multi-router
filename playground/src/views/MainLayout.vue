@@ -55,7 +55,7 @@ const subMenuThemeOverrides: NonNullable<MenuProps['themeOverrides']> = {
         :theme-overrides="subMenuThemeOverrides"
       />
     </NLayoutHeader>
-    <NLayoutContent content-style="padding: 24px;">
+    <NLayoutContent content-style="padding: 24px;" content-class="h-screen!">
       <RouterView />
     </NLayoutContent>
   </NLayout>

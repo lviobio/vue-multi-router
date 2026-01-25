@@ -44,5 +44,29 @@ export class VirtualStackStorage {
     return this.adapter.getActiveHistoryContext()
   }
 
+  clearActiveContext(): MaybePromise<void> {
+    return this.adapter.clearActiveContext()
+  }
+
+  clearActiveHistoryContext(): MaybePromise<void> {
+    return this.adapter.clearActiveHistoryContext()
+  }
+
+  saveContextStack(stack: string[]): MaybePromise<void> {
+    return this.adapter.saveContextStack(stack)
+  }
+
+  getContextStack(): MaybePromise<string[]> {
+    return this.adapter.getContextStack()
+  }
+
+  saveHistoryContextStack(stack: string[]): MaybePromise<void> {
+    return this.adapter.saveHistoryContextStack(stack)
+  }
+
+  getHistoryContextStack(): MaybePromise<string[]> {
+    return this.adapter.getHistoryContextStack()
+  }
+
   resolveValue = resolveValue
 }

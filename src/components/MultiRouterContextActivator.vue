@@ -8,6 +8,11 @@ export default defineComponent({
       type: String as PropType<string | null>,
       default: null,
     },
+    preventClass: {
+      type: String as PropType<string | null>,
+      default: null,
+      required: false,
+    },
   },
   setup(props, { slots }) {
     const contextKey = inject(multiRouterContextKey)
@@ -20,8 +25,18 @@ export default defineComponent({
 
     const onActivate = (e: MouseEvent) => {
       e.stopPropagation()
-      if (manager.setActive(contextKey, true)) {
-        console.debug('[MultiRouterContextActivator] activated', contextKey)
+      let shouldActivate = true
+
+      const target = e.target as HTMLElement | null
+
+      if (props.preventClass && target?.closest('.' + props.preventClass)) {
+        shouldActivate = false
+      }
+
+      if (shouldActivate) {
+        if (manager.setActive(contextKey, true)) {
+          console.debug('[MultiRouterContextActivator] activated', contextKey)
+        }
       }
     }
 

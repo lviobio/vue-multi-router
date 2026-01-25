@@ -83,6 +83,14 @@ export class MultiRouterManagerInstance {
     let modified = false
 
     if (this.activeContext.value?.key !== key) {
+      // Push current active context to stack before switching
+      if (this.activeContext.value?.key) {
+        this.historyManager.pushToContextStack(this.activeContext.value.key)
+      }
+
+      // Remove new active context from stack (it shouldn't be there)
+      this.historyManager.removeFromContextStack(key)
+
       this.activeContext.value = {
         key,
         context: item,
@@ -202,13 +210,24 @@ export class MultiRouterManagerInstance {
               key,
             })
             this.setActive(key, true)
-          } else if (isDefault && !resolvedLastActiveKey && !this.activeContext.value) {
-            // Only activate default if there's no saved context in storage
-            console.debug('[MultiRouterContextManager] Activating default context', {
-              key,
-              historyEnabled,
-            })
-            this.setActive(key, true)
+          } else if (!this.activeContext.value) {
+            // Check if saved context doesn't exist (was deleted)
+            const savedContextExists =
+              resolvedLastActiveKey && this.registered.has(resolvedLastActiveKey)
+
+            if (!savedContextExists) {
+              // Saved context doesn't exist - activate this one as fallback
+              if (isDefault || !resolvedLastActiveKey) {
+                console.debug('[MultiRouterContextManager] Activating default context', {
+                  key,
+                  historyEnabled,
+                })
+                this.setActive(key, true)
+              } else {
+                // Try to activate from context stack, or use this context as last resort
+                this.activateFromStackOrFallback(key)
+              }
+            }
           }
         })
       })
@@ -227,9 +246,80 @@ export class MultiRouterManagerInstance {
     const context = this.registered.get(key)
     if (context) {
       console.debug('[MultiRouterContextManager] unregister', { key })
+
+      // If this was the active context, switch to previous one from the stack
+      if (this.activeContext.value?.key === key) {
+        this.fallbackToPreviousContext()
+      }
+
+      // If this was the active history context, clearHistoryContext will handle the fallback
+      if (this.activeHistoryContext.value?.key === key) {
+        this.clearHistoryContext(key)
+      }
+
       this.historyManager.removeContextHistory(key)
       this.registered.delete(key)
     }
+  }
+
+  private activateFromStackOrFallback(fallbackKey: string) {
+    // Already have an active context
+    if (this.activeContext.value) return
+
+    // Try to get context from stack
+    let contextKey = this.historyManager.popFromContextStack()
+    while (contextKey && !this.registered.has(contextKey)) {
+      contextKey = this.historyManager.popFromContextStack()
+    }
+
+    // Use fallback if stack is empty
+    if (!contextKey) {
+      contextKey = fallbackKey
+    }
+
+    if (contextKey && this.registered.has(contextKey)) {
+      console.debug('[MultiRouterContextManager] Activating from stack or fallback', {
+        key: contextKey,
+      })
+      this.setActive(contextKey, true)
+    }
+  }
+
+  private fallbackToPreviousContext() {
+    let previousKey = this.historyManager.popFromContextStack()
+
+    // Find a valid previous context (one that still exists)
+    while (previousKey && !this.registered.has(previousKey)) {
+      previousKey = this.historyManager.popFromContextStack()
+    }
+
+    // If no previous context in stack, try activeHistoryContext
+    if (!previousKey) {
+      const historyContextKey = this.activeHistoryContext.value?.key
+      if (historyContextKey && this.registered.has(historyContextKey)) {
+        previousKey = historyContextKey
+      }
+    }
+
+    // If still no context, pick any registered context
+    if (!previousKey && this.registered.size > 0) {
+      previousKey = this.registered.keys().next().value ?? null
+    }
+
+    if (previousKey) {
+      const previousContext = this.registered.get(previousKey)
+      if (previousContext) {
+        this.activeContext.value = { key: previousKey, context: previousContext }
+        this.historyManager.saveActiveContext(previousKey)
+        console.debug('[MultiRouterContextManager] fallbackToPreviousContext', { to: previousKey })
+        return
+      }
+    }
+
+    // No previous context found, clear active context
+    this.activeContext.value = undefined
+    this.historyManager.clearActiveContext()
+    console.debug('[MultiRouterContextManager] fallbackToPreviousContext', { to: null })
   }
 
   public initialize(key: string) {

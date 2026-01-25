@@ -1,14 +1,13 @@
 import { computed, inject } from 'vue'
-import { multiRouterContextKey, multiRouterContextManagerKey } from '@/injectionSymbols'
+import { multiRouterContextKey } from '@/injectionSymbols'
 import type { Router } from 'vue-router'
+import { useMultiRouter } from './useMultiRouter'
 
 export function useMultiRouterContext() {
-  const manager = inject(multiRouterContextManagerKey)
-  const contextKey = inject(multiRouterContextKey)
+  const { manager, activeContextKey, activeHistoryContextKey, setActive, hasContext } =
+    useMultiRouter()
 
-  if (!manager) {
-    throw new Error('[useMultiRouterContext] Must be used within MultiRouterContextProvider')
-  }
+  const contextKey = inject(multiRouterContextKey)
 
   if (!contextKey) {
     throw new Error('[useMultiRouterContext] Must be used within MultiRouterContext')
@@ -18,20 +17,14 @@ export function useMultiRouterContext() {
 
   const route = computed(() => router.value.currentRoute.value)
 
-  const isActive = computed(() => manager.getActiveContextRef().value?.key === contextKey)
+  const isActive = computed(() => activeContextKey.value === contextKey)
 
-  const activeContextKey = computed(() => manager.getActiveContextRef().value?.key)
-
-  const activeHistoryContextKey = computed(() => manager.getActiveHistoryContextRef().value?.key)
-
-  const isHistoryActive = computed(
-    () => manager.getActiveHistoryContextRef().value?.key === contextKey,
-  )
+  const isHistoryActive = computed(() => activeHistoryContextKey.value === contextKey)
 
   const historyEnabled = computed(() => manager.getContextHistoryEnabled(contextKey))
 
   const activate = (updateHistory = true) => {
-    manager.setActive(contextKey, updateHistory)
+    setActive(contextKey, updateHistory)
   }
 
   return {
@@ -45,5 +38,7 @@ export function useMultiRouterContext() {
     activeHistoryContextKey,
     historyEnabled,
     activate,
+    setActive,
+    hasContext,
   }
 }

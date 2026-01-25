@@ -15,6 +15,7 @@ export { default as MultiRouterContext } from './components/MultiRouterContext.v
 export { default as MultiRouterContextActivator } from './components/MultiRouterContextActivator.vue'
 
 // Composables
+export { useMultiRouter } from './composables/useMultiRouter'
 export { useMultiRouterContext } from './composables/useMultiRouterContext'
 
 // Types

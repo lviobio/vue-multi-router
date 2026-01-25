@@ -3,7 +3,9 @@ import { computed, nextTick } from 'vue'
 import { useSessionStorage } from '@vueuse/core'
 import { NButton, NCard, NH1, NIcon, NText } from 'naive-ui'
 import { Add as AddIcon } from '@vicons/ionicons5'
-import { MultiRouterContext, MultiRouterContextActivator } from '../../../../src'
+import { MultiRouterContext, MultiRouterContextActivator, useMultiRouter } from '../../../../src'
+
+const { setActive, hasContext } = useMultiRouter()
 
 interface ICard {
   name: string
@@ -23,13 +25,20 @@ const newCardOptions = useSessionStorage('demo-cards-new-options', {
   history: true,
 })
 
-function addCard() {
+async function addCard() {
   const newPosition = cardCounter.value + 1
+  const contextName = `card-${newPosition}`
   cards.value.push({
     name: `Card ${newPosition}`,
     position: newPosition,
     history: newCardOptions.value.history,
   })
+  // Wait for the component to mount and register the context
+  await nextTick()
+  // Activate the new card
+  if (hasContext(contextName)) {
+    setActive(contextName)
+  }
 }
 
 function removeCard(position: number) {
@@ -77,7 +86,7 @@ async function reset() {
           initial-location="/demo/cards/content"
           :history-enabled="card.history"
         >
-          <MultiRouterContextActivator>
+          <MultiRouterContextActivator prevent-class="n-card-header__close">
             <RouterView :title="card.name" @remove="removeCard(card.position)" />
           </MultiRouterContextActivator>
         </MultiRouterContext>

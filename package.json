@@ -35,7 +35,7 @@
     "format:check": "prettier --check src/ playground/src",
     "lint": "eslint . --fix",
     "lint:check": "eslint .",
-    "dependency-cruiser:check": "depcruise --config .dependency-cruiser.cjs src playground",
+    "dependency-cruiser:check": "depcruise --config .dependency-cruiser.cjs src playground/src",
     "play": "vite --port 5174",
     "build:playground": "vite build",
     "preview:playground": "vite preview --outDir playground/dist",

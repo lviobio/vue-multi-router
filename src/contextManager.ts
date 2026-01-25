@@ -51,6 +51,12 @@ export class MultiRouterManagerInstance {
         // Activate context on popstate (browser back/forward)
         // Use updateHistory=false since we're responding to browser history change
         this.setActive(contextKey, false)
+
+        // Also update activeHistoryContext (but don't push to browser history)
+        const context = this.registered.get(contextKey)
+        if (context?.historyEnabled && this.activeHistoryContext.value?.key !== contextKey) {
+          this.activeHistoryContext.value = { key: contextKey, context }
+        }
       },
     })
   }

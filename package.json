@@ -57,6 +57,7 @@
     "@vitest/coverage-v8": "^4.0.16",
     "@vue/eslint-config-typescript": "^14.6.0",
     "@vue/test-utils": "^2.4.6",
+    "@vueuse/core": "^14.1.0",
     "bumpp": "^10.3.2",
     "dependency-cruiser": "^17.3.6",
     "eslint": "^9.39.2",

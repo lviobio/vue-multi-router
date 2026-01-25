@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import { NConfigProvider, NMessageProvider } from 'naive-ui'
-import './style.css'
 import { MultiRouterContext, MultiRouterContextActivator } from '../../src'
 </script>
 
 <template>
-  <NConfigProvider>
+  <NConfigProvider
+    :theme-overrides="{
+      Form: {
+        labelTextColor: 'var(--color-gray-500)',
+        labelPaddingVertical: '0 0 0 2px',
+      },
+    }"
+  >
     <NMessageProvider>
       <MultiRouterContext type="main" name="main" default>
         <MultiRouterContextActivator>

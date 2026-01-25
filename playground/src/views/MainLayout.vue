@@ -2,6 +2,7 @@
 import { NLayout, NLayoutHeader, NLayoutContent, NMenu, type MenuProps } from 'naive-ui'
 import { h } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
+import AppMultiRouterContextStatus from './AppMultiRouterContextStatus.vue'
 
 const route = useRoute()
 
@@ -30,6 +31,7 @@ const subMenuThemeOverrides: NonNullable<MenuProps['themeOverrides']> = {
     <NLayoutHeader bordered class="header main-header">
       <RouterLink to="/" class="title">Vue Multi Router</RouterLink>
       <RouterLink to="/" class="demo-link">Demo</RouterLink>
+      <AppMultiRouterContextStatus class="ml-auto" />
     </NLayoutHeader>
     <NLayoutHeader bordered class="header sub-header">
       <NMenu

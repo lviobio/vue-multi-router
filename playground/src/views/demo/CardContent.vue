@@ -1,31 +1,40 @@
 <script setup lang="ts">
-import { NInput, NText, NSpace, NButton, NIcon, NCard } from 'naive-ui'
-import { Close as CloseIcon } from '@vicons/ionicons5'
-import { watch, ref } from 'vue'
+import { NCard, NInput, NInputNumber, NSpace, NText } from 'naive-ui'
+import { reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useMultiRouterContext } from '../../../../src'
 
 const router = useRouter()
 const route = useRoute()
 
-const emit = defineEmits(['remove'])
-
 const props = defineProps<{
-  title: string
+  title?: string
 }>()
 
-const inputValue = ref('')
+const emit = defineEmits(['remove'])
 
-watch(inputValue, () => {
+const { isActive } = useMultiRouterContext()
+
+const values = reactive({
+  value: '',
+  number: 0 as number | null,
+})
+
+watch(values, () => {
   router.replace({
     ...route,
-    query: inputValue.value ? { value: inputValue.value } : {},
+    query: {
+      value: values.value ? values.value : '',
+      number: values.number !== null ? values.number : undefined,
+    },
   })
 })
 
 watch(
-  () => route.query.value,
-  (value) => {
-    inputValue.value = value as string
+  () => ({ ...route.query }),
+  (query) => {
+    values.value = query.value as string
+    values.number = query.number ? Number(query.number) : null
   },
   { immediate: true },
 )
@@ -33,25 +42,35 @@ watch(
 
 <template>
   <NCard
-    :title="props.title"
     header-class="py-1!"
+    :theme-overrides="{
+      borderColor: isActive ? 'var(--color-green-600)' : undefined,
+    }"
     size="small"
     style="min-height: 130px"
     :segmented="{ content: true }"
+    closable
+    @close="emit('remove')"
   >
-    <template #header-extra>
-      <NButton text type="error" @click="emit('remove')">
-        <template #icon>
-          <NIcon><CloseIcon /></NIcon>
-        </template>
-      </NButton>
+    <template #header>
+      <div>
+        {{ props.title || 'Card' }}
+      </div>
     </template>
-
-    <NSpace vertical>
-      <NInput v-model:value="inputValue" placeholder="Type something..." />
-      <NText depth="3" style="font-family: monospace; font-size: 12px; word-break: break-all">
-        query: {{ route.query }}
-      </NText>
+    <NSpace size="small">
+      <NSpace :wrap="false">
+        <NFormItem label="Value" :show-feedback="false">
+          <NInput v-model:value="values.value" placeholder="Type something..." />
+        </NFormItem>
+        <NFormItem label="Number" :show-feedback="false">
+          <NInputNumber v-model:value="values.number" placeholder="Some number" />
+        </NFormItem>
+      </NSpace>
+      <div class="flex flex-col">
+        <NText depth="3" class="text-xs">
+          <code>{{ values }}</code>
+        </NText>
+      </div>
     </NSpace>
   </NCard>
 </template>

@@ -35,6 +35,14 @@ const routes = [
         path: 'demo/tabs',
         name: 'demo.tabs',
         component: () => import('./views/demo/Tabs.vue'),
+        children: [
+          {
+            path: 'content',
+            name: 'demo.tabs.content',
+            component: () => import('./views/demo/TabContent.vue'),
+            meta: { multiRouterRoot: true },
+          },
+        ],
       },
       {
         path: 'demo/windows',
@@ -56,6 +64,7 @@ export const multiRouter = createMultiRouter({
   types: {
     main: { canUseAsHistoryContext: true, single: true },
     card: { canUseAsHistoryContext: false, single: false },
+    tab: { canUseAsHistoryContext: true, single: false },
   },
   routes,
 })

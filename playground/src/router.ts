@@ -1,4 +1,4 @@
-import { createWebHistory } from 'vue-router'
+import { createWebHashHistory, createWebHistory } from 'vue-router'
 import { createMultiRouter } from '../../src'
 
 const routes = [
@@ -42,7 +42,10 @@ const routes = [
 ]
 
 export const multiRouter = createMultiRouter({
-  history: () => createWebHistory(import.meta.env.BASE_URL),
+  history: () =>
+    import.meta.env.PROD
+      ? createWebHashHistory(import.meta.env.BASE_URL)
+      : createWebHistory(import.meta.env.BASE_URL),
   types: {
     main: { canUseAsHistoryContext: true, single: true },
     card: { canUseAsHistoryContext: false, single: false },

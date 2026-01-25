@@ -50,6 +50,9 @@ export const multiRouter = createMultiRouter({
     import.meta.env.PROD
       ? createWebHashHistory(import.meta.env.BASE_URL)
       : createWebHistory(import.meta.env.BASE_URL),
+  historyOptions: {
+    contextSwitchMode: 'push',
+  },
   types: {
     main: { canUseAsHistoryContext: true, single: true },
     card: { canUseAsHistoryContext: false, single: false },

@@ -29,7 +29,7 @@ onMultiRouterContextActivate(async () => {
 })
 
 watch(values, () => {
-  router.replace({
+  router.push({
     ...route,
     query: {
       value: values.value ? values.value : '',

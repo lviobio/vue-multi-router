@@ -1,6 +1,9 @@
 // Core function
 export { createMultiRouter } from './multi-router'
 
+// Utils
+export { onMultiRouterContextActivate } from './hooks'
+
 // Context templates
 export {
   contextTemplateWindows,

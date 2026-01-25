@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { NCard, NInput, NInputNumber, NSpace, NText } from 'naive-ui'
-import { reactive, watch } from 'vue'
+import { reactive, useTemplateRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useMultiRouterContext } from '../../../../src'
+import { onMultiRouterContextActivate, useMultiRouterContext } from '../../../../src'
 
 const router = useRouter()
 const route = useRoute()
@@ -13,11 +13,19 @@ const props = defineProps<{
 
 const emit = defineEmits(['remove'])
 
+const inputRef = useTemplateRef('inputRef')
+
 const { isActive } = useMultiRouterContext()
 
 const values = reactive({
   value: '',
   number: 0 as number | null,
+})
+
+onMultiRouterContextActivate(async () => {
+  setTimeout(() => {
+    inputRef.value?.focus()
+  })
 })
 
 watch(values, () => {
@@ -60,7 +68,7 @@ watch(
     <NSpace size="small">
       <NSpace :wrap="false">
         <NFormItem label="Value" :show-feedback="false">
-          <NInput v-model:value="values.value" placeholder="Type something..." />
+          <NInput v-model:value="values.value" placeholder="Type something..." ref="inputRef" />
         </NFormItem>
         <NFormItem label="Number" :show-feedback="false">
           <NInputNumber v-model:value="values.number" placeholder="Some number" />

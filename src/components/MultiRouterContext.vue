@@ -1,8 +1,19 @@
 <script lang="ts">
-import { defineComponent, h, inject, onBeforeUnmount, provide, ref } from 'vue'
-import { multiRouterContextManagerKey } from '@/injectionSymbols'
+import { defineComponent, h, onBeforeUnmount, provide, type Ref, watch } from 'vue'
+import { multiRouterContextActivateCallbacksKey } from '@/injectionSymbols'
 import { multiRouterContext } from '@/symbols'
-import { viewDepthKey } from 'vue-router'
+import { useMultiRouter } from '@/composables/useMultiRouter'
+
+function withContextActivateCallbacks(name: string, activeContextKey: Ref<string | undefined>) {
+  const multiRouterActivatedCallbacks: Array<(name: string) => void> = []
+  provide(multiRouterContextActivateCallbacksKey, multiRouterActivatedCallbacks)
+
+  watch(activeContextKey, (newName) => {
+    if (newName === name) {
+      multiRouterActivatedCallbacks.forEach((callback) => callback(name))
+    }
+  })
+}
 
 const MultiRouterContextInner = defineComponent({
   name: 'MultiRouterContextInner',
@@ -33,7 +44,7 @@ const MultiRouterContextInner = defineComponent({
     },
   },
   setup(props, { slots }) {
-    const manager = inject(multiRouterContextManagerKey)!
+    const { manager, activeContextKey } = useMultiRouter()
 
     console.debug('[MultiRouterContext] setup', {
       type: props.type,
@@ -56,7 +67,7 @@ const MultiRouterContextInner = defineComponent({
 
     provide(multiRouterContext, props.name)
 
-    provide(viewDepthKey, ref(0))
+    withContextActivateCallbacks(props.name, activeContextKey)
 
     onBeforeUnmount(() => {
       manager.unregister(props.name)

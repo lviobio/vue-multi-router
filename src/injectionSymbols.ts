@@ -6,3 +6,6 @@ export const multiRouterContextManagerKey: InjectionKey<MultiRouterManagerInstan
   multiRouterContextManager
 
 export const multiRouterContextKey: InjectionKey<string> = multiRouterContext
+
+export const multiRouterContextActivateCallbacksKey: InjectionKey<Array<(name: string) => void>> =
+  Symbol('multi-router-context-activated-callbacks')

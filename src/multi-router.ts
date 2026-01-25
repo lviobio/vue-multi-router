@@ -1,18 +1,20 @@
 import { MultiRouterManagerInstance } from '@/contextManager'
 import type { MultiRouterHistoryManagerOptions } from '@/history'
-import { multiRouterContextManagerKey } from '@/injectionSymbols'
+import { multiRouterContextManagerKey, multiRouterOriginalDepthKey } from '@/injectionSymbols'
 import { multiRouterContext } from '@/symbols'
 import type { ContextTypes } from '@/types'
 import {
-  getCurrentInstance as _getCurrentInstance,
   type App,
   type ComponentInternalInstance,
+  computed,
+  getCurrentInstance as _getCurrentInstance,
 } from 'vue'
 import {
   createRouter,
   routeLocationKey,
   type RouteLocationNormalized,
   type RouteLocationNormalizedLoaded,
+  type RouteLocationNormalizedLoadedGeneric,
   type Router,
   type RouterHistory,
   routerKey,
@@ -20,6 +22,7 @@ import {
   type RouterOptions,
   RouterView,
   routerViewLocationKey,
+  viewDepthKey,
 } from 'vue-router'
 
 const START_LOCATION_NORMALIZED = {
@@ -104,6 +107,36 @@ function installContextAwareRouterResolvers(app: App, contextManager: MultiRoute
 
   Object.defineProperty(app._context.provides, routeLocationKey, routeProperty)
   Object.defineProperty(app.config.globalProperties, '$route', routeProperty)
+
+  Object.defineProperty(app._context.provides, viewDepthKey, {
+    enumerable: true,
+    configurable: true,
+    get() {
+      const instance = getCurrentInstance()
+      const originalDepthRef = instance?.provides[multiRouterOriginalDepthKey]
+
+      return computed(() => {
+        const originalDepth = originalDepthRef?.value || 0
+        const injectedRoute = instance?.provides[routerViewLocationKey]
+          .value as RouteLocationNormalizedLoadedGeneric
+
+        const indexOfLastRoot = injectedRoute.matched.findLastIndex(
+          (route) => route.meta.multiRouterRoot,
+        )
+
+        if (originalDepth < indexOfLastRoot) {
+          return indexOfLastRoot
+        }
+
+        return originalDepth
+      })
+    },
+    set(value) {
+      const instance = getCurrentInstance()
+
+      instance.provides[multiRouterOriginalDepthKey] = value
+    },
+  })
 
   Object.defineProperty(app._context.provides, routerViewLocationKey, {
     enumerable: true,

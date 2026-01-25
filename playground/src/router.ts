@@ -15,13 +15,22 @@ const routes = [
         path: 'demo/cards',
         name: 'demo.cards',
         component: () => import('./views/demo/Cards.vue'),
+        children: [
+          {
+            path: 'wrapper',
+            name: 'demo.cards.wrapper',
+            component: () => import('./views/demo/CardContentWrapper.vue'),
+            children: [
+              {
+                path: 'content',
+                name: 'demo.cards.wrapper.content',
+                component: () => import('./views/demo/CardContent.vue'),
+                meta: { multiRouterRoot: true },
+              },
+            ],
+          },
+        ],
       },
-      // {
-      //   path: 'demo/cards/content',
-      //   name: 'demo.cards.content',
-      //   component: () => import('./views/demo/CardContent.vue'),
-      //   meta: { multiRouterRoot: { card: true } },
-      // },
       {
         path: 'demo/tabs',
         name: 'demo.tabs',
@@ -33,11 +42,6 @@ const routes = [
         component: () => import('./views/demo/Windows.vue'),
       },
     ],
-  },
-  // Route for card content - matches any path with query
-  {
-    path: '/demo/cards/content',
-    component: () => import('./views/demo/CardContent.vue'),
   },
 ]
 

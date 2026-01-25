@@ -1,4 +1,4 @@
-import type { InjectionKey } from 'vue'
+import type { InjectionKey, Ref } from 'vue'
 import type { MultiRouterManagerInstance } from '@/contextManager'
 import { multiRouterContext, multiRouterContextManager } from '@/symbols'
 
@@ -9,3 +9,5 @@ export const multiRouterContextKey: InjectionKey<string> = multiRouterContext
 
 export const multiRouterContextActivateCallbacksKey: InjectionKey<Array<(name: string) => void>> =
   Symbol('multi-router-context-activated-callbacks')
+
+export const multiRouterOriginalDepthKey: InjectionKey<Ref<number> | number> = Symbol()

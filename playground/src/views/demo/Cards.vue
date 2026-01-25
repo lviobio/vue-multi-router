@@ -83,7 +83,7 @@ async function reset() {
         <MultiRouterContext
           type="card"
           :name="`card-${card.position}`"
-          initial-location="/demo/cards/content"
+          initial-location="/demo/cards/wrapper/content"
           :history-enabled="card.history"
         >
           <MultiRouterContextActivator prevent-class="n-card-header__close">

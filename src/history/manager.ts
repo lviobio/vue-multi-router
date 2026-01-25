@@ -204,9 +204,14 @@ export class MultiRouterHistoryManager {
             initialLocation,
           })
         } else {
-          // Fallback to default '/'
-          virtualStack = this.createInitialVirtualStack()
-          console.debug('[MultiRouterHistory] Created with default location', { contextKey })
+          // No storage, not last active, no initialLocation - use browser URL
+          // This handles fresh start with empty storage
+          const browserUrl = this.baseHistory.location
+          virtualStack = this.createInitialVirtualStack(browserUrl)
+          console.debug('[MultiRouterHistory] Created with browser URL (fresh start)', {
+            contextKey,
+            browserUrl,
+          })
         }
 
         return this.finalizeContextCreation(contextKey, virtualStack, isLastActive, historyEnabled)

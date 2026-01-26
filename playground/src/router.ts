@@ -27,6 +27,12 @@ const routes = [
                 component: () => import('./views/demo/CardContent.vue'),
                 meta: { multiRouterRoot: true },
               },
+              {
+                path: 'content-v2',
+                name: 'demo.cards.wrapper.content-v2',
+                component: () => import('./views/demo/CardContentV2.vue'),
+                meta: { multiRouterRoot: true },
+              },
             ],
           },
         ],

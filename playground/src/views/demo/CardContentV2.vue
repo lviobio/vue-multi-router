@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { NCard, NInput, NInputNumber, NSpace, NText } from 'naive-ui'
+import { NCard, NInput, NSpace, NText } from 'naive-ui'
 import { reactive, ref, useTemplateRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { onMultiRouterContextActivate, useMultiRouterContext } from '../../../../src'
@@ -51,15 +51,16 @@ function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-const someLetters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o']
+const someAnimals = ['cat', 'dog', 'owl', 'cow', 'bat', 'rat', 'hen', 'pig', 'fox', 'goose']
 
 const canTypeSomething = ref(true)
 async function handleTypeSomething() {
   canTypeSomething.value = false
   await wait(500)
   values.value = ''
-  for (const letter of someLetters) {
-    values.value += letter
+  for (let i = 0; i < someAnimals.length; i++) {
+    const animal = someAnimals[i]
+    values.value += (i < someAnimals.length && i !== 0 ? ' ' : '') + animal
     await wait(500)
   }
   canTypeSomething.value = true
@@ -97,15 +98,11 @@ async function handleTypeSomething() {
         <NText v-else>History is not syncing with browser url</NText>
       </NPopover>
     </template>
-    <NSpace size="small">
-      <NSpace :wrap="false">
-        <NFormItem label="Value" :show-feedback="false">
-          <NInput v-model:value="values.value" placeholder="Type something..." ref="inputRef" />
-        </NFormItem>
-        <NFormItem label="Number" :show-feedback="false">
-          <NInputNumber v-model:value="values.number" placeholder="Some number" />
-        </NFormItem>
-      </NSpace>
+    <NSpace size="small" vertical :wrap="false">
+      <p>This is version 2 of the card component! It has a different url.</p>
+      <NFormItem label="Value" :show-feedback="false">
+        <NInput v-model:value="values.value" placeholder="Type something..." ref="inputRef" />
+      </NFormItem>
       <div class="flex flex-col">
         <NText depth="3" class="text-xs">
           <code>{{ values }}</code>
@@ -117,8 +114,8 @@ async function handleTypeSomething() {
         <NButton size="tiny" @click="handleTypeSomething" :disabled="!canTypeSomething">
           Type something
         </NButton>
-        <NButton size="tiny" @click="router.push({ name: 'demo.cards.wrapper.content-v2' })">
-          Navigate to card v2
+        <NButton size="tiny" @click="router.push({ name: 'demo.cards.wrapper.content' })">
+          Navigate to previous version
         </NButton>
       </NSpace>
     </template>

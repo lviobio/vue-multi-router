@@ -5,7 +5,6 @@ import {
   type HistoryBuilder,
   type MaybePromise,
 } from '@/history'
-import type { ContextTypes } from '@/types'
 import { shallowRef, type App } from 'vue'
 import type { Router, RouterHistory } from 'vue-router'
 
@@ -40,7 +39,6 @@ export class MultiRouterManagerInstance {
 
   constructor(
     app: App,
-    private types: ContextTypes,
     historyManagerOptions: HistoryManagerOptions,
     private makeRouter: MakeRouterFn,
   ) {
@@ -165,10 +163,6 @@ export class MultiRouterManagerInstance {
       default?: boolean
     },
   ): MaybePromise<void> {
-    const typeConfig = this.types[type]
-
-    if (!typeConfig) throw new Error(`[MultiRouter] Context type "${type}" not found`)
-
     const historyEnabled = options?.historyEnabled ?? true
     const isDefault = options?.default ?? false
 

@@ -2,7 +2,6 @@ import { MultiRouterManagerInstance } from '@/contextManager'
 import type { MultiRouterHistoryManagerOptions } from '@/history'
 import { multiRouterContextManagerKey, multiRouterOriginalDepthKey } from '@/injectionSymbols'
 import { multiRouterContext } from '@/symbols'
-import type { ContextTypes } from '@/types'
 import {
   type App,
   type ComponentInternalInstance,
@@ -166,31 +165,9 @@ type MultiRouterInterface = {
   install: (app: App) => void
 }
 
-export const contextTemplateWindows = {
-  window: { canUseAsHistoryContext: true, single: false },
-} satisfies ContextTypes
-
-export const contextTemplateTabs = {
-  tab: { canUseAsHistoryContext: true, single: false },
-} satisfies ContextTypes
-
-export const contextTemplateMainWithWindows = {
-  main: { canUseAsHistoryContext: true, single: true },
-  ...contextTemplateWindows,
-} satisfies ContextTypes
-export const contextTemplateDesktopWithWindows = {
-  desktop: { canUseAsHistoryContext: false, single: true },
-  ...contextTemplateWindows,
-} satisfies ContextTypes
-export const contextTemplateTabsWithWindows = {
-  ...contextTemplateTabs,
-  ...contextTemplateWindows,
-} satisfies ContextTypes
-
 type CustomRouterOptions = Omit<RouterOptions, 'history'> & {
   history: () => RouterHistory
   historyOptions?: MultiRouterHistoryManagerOptions
-  types: ContextTypes
 }
 
 export function createMultiRouter(options: CustomRouterOptions): MultiRouterInterface {
@@ -214,7 +191,6 @@ export function createMultiRouter(options: CustomRouterOptions): MultiRouterInte
 
       contextManager = new MultiRouterManagerInstance(
         app,
-        options.types,
         { historyBuilder: options.history, ...options.historyOptions },
         makeRouter,
       )

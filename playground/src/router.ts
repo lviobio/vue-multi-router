@@ -67,10 +67,5 @@ export const multiRouter = createMultiRouter({
   historyOptions: {
     contextSwitchMode: 'push',
   },
-  types: {
-    main: { canUseAsHistoryContext: true, single: true },
-    card: { canUseAsHistoryContext: false, single: false },
-    tab: { canUseAsHistoryContext: true, single: false },
-  },
   routes,
 })

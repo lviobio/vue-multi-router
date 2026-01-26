@@ -4,15 +4,6 @@ export { createMultiRouter } from './multi-router'
 // Utils
 export { onMultiRouterContextActivate } from './hooks'
 
-// Context templates
-export {
-  contextTemplateWindows,
-  contextTemplateTabs,
-  contextTemplateMainWithWindows,
-  contextTemplateDesktopWithWindows,
-  contextTemplateTabsWithWindows,
-} from './multi-router'
-
 // Components
 export { default as MultiRouterContext } from './components/MultiRouterContext.vue'
 export { default as MultiRouterContextActivator } from './components/MultiRouterContextActivator.vue'
@@ -20,9 +11,6 @@ export { default as MultiRouterContextActivator } from './components/MultiRouter
 // Composables
 export { useMultiRouter } from './composables/useMultiRouter'
 export { useMultiRouterContext } from './composables/useMultiRouterContext'
-
-// Types
-export * from './types'
 
 // History types and utilities
 export type {

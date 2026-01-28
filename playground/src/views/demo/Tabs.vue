@@ -2,7 +2,7 @@
 import { computed, nextTick, watch } from 'vue'
 import { useSessionStorage } from '@vueuse/core'
 import { NButton, NH1, NTabPane, NTabs, NText } from 'naive-ui'
-import { MultiRouterContext, MultiRouterContextActivator, useMultiRouter } from '../../../../src'
+import { MultiRouterContext, useMultiRouter } from '../../../../src'
 
 const { setActive, hasContext, activeContextKey } = useMultiRouter()
 
@@ -118,9 +118,7 @@ async function reset() {
           :name="`tab-${tab.position}`"
           initial-location="/demo/tabs/content"
         >
-          <MultiRouterContextActivator>
-            <RouterView :title="tab.name" />
-          </MultiRouterContextActivator>
+          <RouterView :title="tab.name" />
         </MultiRouterContext>
       </NTabPane>
     </NTabs>

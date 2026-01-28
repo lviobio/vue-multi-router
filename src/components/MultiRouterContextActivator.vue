@@ -44,12 +44,12 @@ export default defineComponent({
       const children = slots.default?.()
 
       if (!props.as) {
-        // Fragment mode - attach event to first child or wrap in span
+        // Fragment mode - attach event to first child or wrap in div
         if (children && children.length === 1) {
           return h(children[0], { onMousedown: onActivate })
         }
-        // Multiple children - wrap in span
-        return h('span', { onMousedown: onActivate }, children)
+        // Multiple children - wrap in div
+        return h('div', { onMousedown: onActivate }, children)
       }
 
       // Custom element mode

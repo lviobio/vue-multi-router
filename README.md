@@ -25,19 +25,214 @@ npm install vue-multi-router
 
 ## Features
 
-wip
+- **Multiple Independent Routers** - Run multiple Vue Router instances simultaneously in a single app
+- **Context-Based Navigation** - Each routing context maintains its own navigation history
+- **Browser History Integration** - Back/forward buttons work across contexts with proper URL updates
+- **Session Persistence** - Context states persist across page reloads via SessionStorage or other implementations
+- **TypeScript Support** - Full type definitions included
+- **Composable API** - Easy-to-use composables for accessing router state
 
 ## Basic Usage
 
-wip
+### 1. Create Multi Router
+
+```typescript
+// router.ts
+import { createMultiRouter } from 'vue-multi-router'
+import { createWebHistory } from 'vue-router'
+
+export const multiRouter = createMultiRouter({
+  history: () => createWebHistory(),
+  routes: [
+    {
+      path: '/',
+      component: () => import('./views/Layout.vue'),
+      children: [
+        { path: 'home', component: () => import('./views/Home.vue') },
+        { path: 'about', component: () => import('./views/About.vue') },
+      ],
+    },
+  ],
+})
+```
+
+### 2. Install Plugin
+
+```typescript
+// main.ts
+import { createApp } from 'vue'
+import App from './App.vue'
+import { multiRouter } from './router'
+
+const app = createApp(App)
+app.use(multiRouter)
+app.mount('#app')
+```
+
+### 3. Define Contexts
+
+```vue
+<!-- App.vue -->
+<template>
+  <MultiRouterContext type="main" name="main" default>
+    <RouterView />
+  </MultiRouterContext>
+</template>
+
+<script setup>
+import { MultiRouterContext } from 'vue-multi-router'
+</script>
+```
+
+`MultiRouterContext` acts as an activator by default — clicking anywhere inside it activates the context. No extra wrapper needed.
+
+### 4. Create Additional Contexts
+
+```vue
+<!-- Panels.vue -->
+<template>
+  <div v-for="panel in panels" :key="panel.id">
+    <MultiRouterContext
+      type="panel"
+      :name="`panel-${panel.id}`"
+      initial-location="/home"
+    >
+      <RouterView />
+    </MultiRouterContext>
+  </div>
+</template>
+```
 
 ## API Reference
 
-wip
+### `createMultiRouter(options)`
+
+Creates a multi-router instance.
+
+**Options:**
+- `history: () => RouterHistory` - Factory function returning a Vue Router history instance
+- `routes: RouteRecordRaw[]` - Route definitions (same as Vue Router)
+- `historyOptions?: MultiRouterHistoryManagerOptions` - History management options
+
+### Route Meta Options
+
+**`multiRouterRoot: boolean`**
+
+Marks a route as the root for context rendering. When a context navigates to a nested route, `RouterView` inside the context will start rendering from the route marked with `multiRouterRoot: true`, skipping parent routes.
+
+```typescript
+const routes = [
+  {
+    path: '/dashboard',
+    component: DashboardLayout,
+    children: [
+      {
+        path: 'panels',
+        component: PanelsContainer,
+        children: [
+          {
+            path: 'content',
+            component: PanelContent,
+            meta: { multiRouterRoot: true }, // Context renders from here
+          },
+        ],
+      },
+    ],
+  },
+]
+```
+
+This is useful when contexts are nested inside shared layouts but should render independently from their root component.
+
+### `<MultiRouterContext>`
+
+Component that defines a routing context boundary. By default, it also acts as an activator — clicking inside the context activates it.
+
+**Props:**
+- `type: string` - Context type identifier (for debugging/organization)
+- `name: string` - Unique context identifier
+- `location?: string` - Force specific location (overrides storage)
+- `initial-location?: string` - Initial location for new contexts
+- `history-enabled?: boolean` - Whether to track in browser history (default: `true`)
+- `default?: boolean` - Activate by default if no saved context exists
+- `activator?: boolean` - Whether to activate context on mousedown (default: `true`). Set to `false` to opt out of built-in activation behavior
+- `prevent-class?: string` - CSS class that prevents activation on click, useful if you want to prevent activation on click of a button that destroys the context
+
+To disable the built-in activator:
+
+```vue
+<MultiRouterContext type="panel" name="panel-1" :activator="false">
+  <!-- manage activation manually -->
+</MultiRouterContext>
+```
+
+### `<MultiRouterContextActivator>`
+
+Standalone wrapper component that activates context on user interaction. Useful for advanced cases where you need fine-grained control over which element triggers activation, separate from the `MultiRouterContext` boundary.
+
+**Props:**
+- `prevent-class?: string` - CSS class that prevents activation on click
+- `as?: string` - HTML element to render as wrapper (default: fragment/div)
+
+### `useMultiRouter()`
+
+Composable for accessing multi-router outside a context.
+
+**Returns:**
+- `activeContextKey: ComputedRef<string | undefined>` - Currently active context
+- `activeHistoryContextKey: ComputedRef<string | undefined>` - Context controlling browser URL
+- `setActive(contextKey: string, updateHistory?: boolean): void` - Activate a context
+- `hasContext(contextKey: string): boolean` - Check if context exists
+
+### `useMultiRouterContext()`
+
+Composable for use inside a `MultiRouterContext`.
+
+**Returns:**
+- `router: ComputedRef<Router>` - Vue Router instance for this context
+- `route: ComputedRef<RouteLocationNormalized>` - Current route
+- `isActive: ComputedRef<boolean>` - Whether this context is active
+- `isHistoryActive: ComputedRef<boolean>` - Whether this context controls browser URL
+- `activate(updateHistory?: boolean): void` - Activate this context
+- `contextKey: string` - This context's key
 
 ## Examples
 
-wip
+### Cards with Query Parameters
+
+```vue
+<template>
+  <div v-for="card in cards" :key="card.id">
+    <MultiRouterContext
+      type="card"
+      :name="`card-${card.id}`"
+      initial-location="/card/content"
+      :history-enabled="false"
+    >
+      <CardContent @close="removeCard(card.id)" />
+    </MultiRouterContext>
+  </div>
+</template>
+```
+
+### Accessing Route in Context
+
+```vue
+<script setup>
+import { useRouter, useRoute } from 'vue-router'
+
+const router = useRouter()
+const route = useRoute()
+
+// Navigate within this context
+function goToPage(path) {
+  router.push(path)
+}
+
+// Access query params
+const searchQuery = computed(() => route.query.q)
+</script>
+```
 
 ## Peer Dependencies
 

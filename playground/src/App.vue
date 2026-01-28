@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { NConfigProvider, NMessageProvider } from 'naive-ui'
-import { MultiRouterContext, MultiRouterContextActivator } from '../../src'
+import { MultiRouterContext } from '../../src'
 </script>
 
 <template>
@@ -14,9 +14,7 @@ import { MultiRouterContext, MultiRouterContextActivator } from '../../src'
   >
     <NMessageProvider>
       <MultiRouterContext type="main" name="main" default>
-        <MultiRouterContextActivator>
-          <RouterView />
-        </MultiRouterContextActivator>
+        <RouterView />
       </MultiRouterContext>
     </NMessageProvider>
   </NConfigProvider>

@@ -1,6 +1,5 @@
 import { computed, inject } from 'vue'
 import { multiRouterContextKey } from '@/injectionSymbols'
-import type { Router } from 'vue-router'
 import { useMultiRouter } from './useMultiRouter'
 
 export function useMultiRouterContext() {
@@ -12,10 +11,6 @@ export function useMultiRouterContext() {
   if (!contextKey) {
     throw new Error('[useMultiRouterContext] Must be used within MultiRouterContext')
   }
-
-  const router = computed<Router>(() => manager.getRouter(contextKey))
-
-  const route = computed(() => router.value.currentRoute.value)
 
   const isActive = computed(() => activeContextKey.value === contextKey)
 
@@ -30,8 +25,6 @@ export function useMultiRouterContext() {
   return {
     manager,
     contextKey,
-    router,
-    route,
     isActive,
     isHistoryActive,
     activeContextKey,

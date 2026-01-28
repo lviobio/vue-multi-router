@@ -3,7 +3,7 @@ import { computed, nextTick } from 'vue'
 import { useSessionStorage } from '@vueuse/core'
 import { NButton, NCard, NH1, NIcon, NText } from 'naive-ui'
 import { Add as AddIcon } from '@vicons/ionicons5'
-import { MultiRouterContext, MultiRouterContextActivator, useMultiRouter } from '../../../../src'
+import { MultiRouterContext, useMultiRouter } from '../../../../src'
 
 const { setActive, hasContext } = useMultiRouter()
 
@@ -85,10 +85,9 @@ async function reset() {
           :name="`card-${card.position}`"
           initial-location="/demo/cards/wrapper/content"
           :history-enabled="card.history"
+          prevent-class="n-card-header__close"
         >
-          <MultiRouterContextActivator prevent-class="n-card-header__close">
-            <RouterView :title="card.name" @remove="removeCard(card.position)" />
-          </MultiRouterContextActivator>
+          <RouterView :title="card.name" @remove="removeCard(card.position)" />
         </MultiRouterContext>
       </NGi>
 

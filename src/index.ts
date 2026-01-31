@@ -16,7 +16,6 @@ export { useMultiRouterContext } from './composables/useMultiRouterContext'
 export type {
   MultiRouterHistoryManagerOptions,
   ContextSwitchMode,
-  HistoryBuilder,
   HistoryLocation,
   HistoryState,
   NavigationCallback,

@@ -189,12 +189,16 @@ Composable for accessing multi-router outside a context.
 Composable for use inside a `MultiRouterContext`.
 
 **Returns:**
-- `router: ComputedRef<Router>` - Vue Router instance for this context
-- `route: ComputedRef<RouteLocationNormalized>` - Current route
+- `manager: useMultiRouter()` - MultiRouter manager instance
+- `contextKey: string` - This context's key
 - `isActive: ComputedRef<boolean>` - Whether this context is active
 - `isHistoryActive: ComputedRef<boolean>` - Whether this context controls browser URL
+- `activeContextKey: ComputedRef<string>` - Currently active context key
+- `activeHistoryContextKey: ComputedRef<string>` - Currently active history context key
+- `historyEnabled: ComputedRef<boolean>` - Whether history is enabled for this context
 - `activate(updateHistory?: boolean): void` - Activate this context
-- `contextKey: string` - This context's key
+- `setActive(contextKey: string, updateHistory?: boolean): void` - Activate a context
+- `hasContext(contextKey: string): boolean` - Check if context exists
 
 ## Examples
 

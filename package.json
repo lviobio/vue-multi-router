@@ -31,14 +31,17 @@
     "dev": "tsdown --watch",
     "check": "npm run ts:check && npm run lint:check && npm run format:check && npm run dependency-cruiser:check",
     "ts:check": "vue-tsc --noEmit",
-    "format": "prettier --write src/ playground/src",
-    "format:check": "prettier --check src/ playground/src",
+    "format": "prettier --write src/ playground/src docs/.vitepress/theme",
+    "format:check": "prettier --check src/ playground/src docs/.vitepress/config.ts docs/.vitepress/theme",
     "lint": "eslint . --fix",
     "lint:check": "eslint .",
-    "dependency-cruiser:check": "depcruise --config .dependency-cruiser.cjs src playground/src",
+    "dependency-cruiser:check": "depcruise --config .dependency-cruiser.cjs src playground/src docs/.vitepress/config.ts docs/.vitepress/theme",
     "play": "vite --port 5174",
     "build:playground": "vite build",
     "preview:playground": "vite preview --outDir playground/dist",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
     "test": "vitest run",
     "release": "bumpp && npm publish",
     "prepublishOnly": "npm run check && npm run test && npm run build"
@@ -48,6 +51,7 @@
     "vue-router": "^4.0.0"
   },
   "devDependencies": {
+    "vitepress": "^1.6.3",
     "@tailwindcss/vite": "^4.1.18",
     "@types/lodash": "^4.17.21",
     "@types/node": "^25.0.3",

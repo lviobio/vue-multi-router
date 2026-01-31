@@ -165,8 +165,7 @@ type MultiRouterInterface = {
   install: (app: App) => void
 }
 
-type CustomRouterOptions = Omit<RouterOptions, 'history'> & {
-  history: () => RouterHistory
+type CustomRouterOptions = RouterOptions & {
   historyOptions?: MultiRouterHistoryManagerOptions
 }
 
@@ -191,7 +190,7 @@ export function createMultiRouter(options: CustomRouterOptions): MultiRouterInte
 
       contextManager = new MultiRouterManagerInstance(
         app,
-        { historyBuilder: options.history, ...options.historyOptions },
+        { history: options.history, ...options.historyOptions },
         makeRouter,
       )
       app.provide(multiRouterContextManagerKey, contextManager)

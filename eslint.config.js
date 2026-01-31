@@ -14,7 +14,7 @@ export default defineConfigWithVueTs(
   vue.configs['flat/essential'],
   vueTsConfigs.recommended,
   {
-    ignores: ['node_modules', 'dist', '*.log', 'coverage', 'playground/dist'],
+    ignores: ['node_modules', 'dist', '*.log', 'coverage', 'playground/dist', 'docs/.vitepress'],
   },
   {
     rules: {

@@ -1,8 +1,5 @@
-import type { RouterHistory } from 'vue-router'
-
 export type HistoryLocation = string
 export type HistoryState = Record<string, any>
-export type HistoryBuilder = () => RouterHistory
 
 export enum NavigationType {
   pop = 'pop',

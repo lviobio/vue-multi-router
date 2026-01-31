@@ -16,6 +16,8 @@ export function useMultiRouter() {
 
   const activeContextKey = computed(() => manager.getActiveContextRef().value?.key)
 
+  const activeContext = computed(() => manager.getActiveContextRef().value)
+
   const activeHistoryContextKey = computed(() => manager.getActiveHistoryContextRef().value?.key)
 
   const setActive = (contextKey: string, updateHistory = true) => {
@@ -28,6 +30,7 @@ export function useMultiRouter() {
 
   return {
     manager,
+    activeContext,
     activeContextKey,
     activeHistoryContextKey,
     setActive,

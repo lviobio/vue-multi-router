@@ -2,7 +2,6 @@ import {
   mapMaybePromise,
   MultiRouterHistoryManager,
   type MultiRouterHistoryManagerOptions,
-  type HistoryBuilder,
   type MaybePromise,
 } from '@/history'
 import { shallowRef, type App } from 'vue'
@@ -16,9 +15,9 @@ type ContextInterface = {
   historyEnabled: boolean
 }
 
-interface ActiveContextInterface {
+export interface ActiveContextInterface {
   key: string
-  context: ContextInterface
+  data: ContextInterface
 }
 
 type ContextInitListener = (key: string) => void
@@ -26,7 +25,7 @@ type ContextInitListener = (key: string) => void
 type MakeRouterFn = (contextKey: string, history: RouterHistory) => Router
 
 type HistoryManagerOptions = {
-  historyBuilder: HistoryBuilder
+  history: RouterHistory
 } & MultiRouterHistoryManagerOptions
 
 export class MultiRouterManagerInstance {
@@ -42,8 +41,8 @@ export class MultiRouterManagerInstance {
     historyManagerOptions: HistoryManagerOptions,
     private makeRouter: MakeRouterFn,
   ) {
-    const { historyBuilder, ...historyOptions } = historyManagerOptions
-    this.historyManager = new MultiRouterHistoryManager(historyBuilder, {
+    const { history, ...historyOptions } = historyManagerOptions
+    this.historyManager = new MultiRouterHistoryManager(history, {
       ...historyOptions,
       onContextActivate: (contextKey: string) => {
         // Activate context on popstate (browser back/forward)
@@ -53,7 +52,7 @@ export class MultiRouterManagerInstance {
         // Also update activeHistoryContext (but don't push to browser history)
         const context = this.registered.get(contextKey)
         if (context?.historyEnabled && this.activeHistoryContext.value?.key !== contextKey) {
-          this.activeHistoryContext.value = { key: contextKey, context }
+          this.activeHistoryContext.value = { key: contextKey, data: context }
         }
       },
     })
@@ -97,7 +96,7 @@ export class MultiRouterManagerInstance {
 
       this.activeContext.value = {
         key,
-        context: item,
+        data: item,
       }
 
       modified = true
@@ -133,7 +132,7 @@ export class MultiRouterManagerInstance {
       if (newActiveKey) {
         const newContext = this.registered.get(newActiveKey)
         if (newContext) {
-          this.activeHistoryContext.value = { key: newActiveKey, context: newContext }
+          this.activeHistoryContext.value = { key: newActiveKey, data: newContext }
         }
       } else {
         this.activeHistoryContext.value = undefined
@@ -196,7 +195,7 @@ export class MultiRouterManagerInstance {
           (restored: boolean) => {
             if (restored && !this.activeHistoryContext.value) {
               console.debug('[MultiRouterContextManager] Restored activeHistoryContext', { key })
-              this.activeHistoryContext.value = { key, context: this.registered.get(key)! }
+              this.activeHistoryContext.value = { key, data: this.registered.get(key)! }
             }
           },
         )
@@ -309,7 +308,7 @@ export class MultiRouterManagerInstance {
     if (previousKey) {
       const previousContext = this.registered.get(previousKey)
       if (previousContext) {
-        this.activeContext.value = { key: previousKey, context: previousContext }
+        this.activeContext.value = { key: previousKey, data: previousContext }
         this.historyManager.saveActiveContext(previousKey)
         console.debug('[MultiRouterContextManager] fallbackToPreviousContext', { to: previousKey })
         return

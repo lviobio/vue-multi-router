@@ -25,12 +25,27 @@ npm install vue-multi-router
 
 ## Features
 
-- **Multiple Independent Routers** - Run multiple Vue Router instances simultaneously in a single app
-- **Context-Based Navigation** - Each routing context maintains its own navigation history
-- **Browser History Integration** - Back/forward buttons work across contexts with proper URL updates
-- **Session Persistence** - Context states persist across page reloads via SessionStorage or other implementations
-- **TypeScript Support** - Full type definitions included
-- **Composable API** - Easy-to-use composables for accessing router state
+- ✅ **Multiple Independent Routers** - Run multiple Vue Router instances simultaneously in a single app
+- ✅ **Context-Based Navigation** - Each routing context maintains its own navigation history
+- ✅ **Browser History Integration** - Back/forward buttons work across contexts with proper URL updates
+- ✅ **Session Persistence** - Context states persist across page reloads via SessionStorage or other implementations
+- ✅ **TypeScript Support** - Full type definitions included
+- ✅ **Composable API** - Easy-to-use composables for accessing router state
+
+## Motivation
+
+Vue Router is designed around a single-router-per-app model. That works well for most applications, but falls short when your UI needs **multiple independent navigation areas** — each with its own route, history stack, and back/forward behavior.
+
+Think of:
+
+- **Dashboard applications** with several panels, each displaying a different page
+- **Desktop-like UIs** with floating or tiled windows that navigate independently
+- **Tabbed interfaces** where each tab has its own browsing history
+- **Multi-pane editors** (email clients, admin tools) with a sidebar, list, and detail view that all route separately
+
+Without vue-multi-router you'd have to juggle manual `<component :is>` switching, duplicate router instances with conflicting URL ownership, or complex query-parameter schemes — all of which break browser history and become hard to maintain.
+
+vue-multi-router solves this by letting you wrap any part of your template in a `<MultiRouterContext>`. Each context gets its own virtual navigation stack while sharing a single set of route definitions and a single browser URL. The library manages history entries so that the browser back/forward buttons work correctly across every context, and state is persisted through page reloads via SessionStorage.
 
 ## Basic Usage
 
@@ -92,11 +107,7 @@ import { MultiRouterContext } from 'vue-multi-router'
 <!-- Panels.vue -->
 <template>
   <div v-for="panel in panels" :key="panel.id">
-    <MultiRouterContext
-      type="panel"
-      :name="`panel-${panel.id}`"
-      initial-location="/home"
-    >
+    <MultiRouterContext type="panel" :name="`panel-${panel.id}`" initial-location="/home">
       <RouterView />
     </MultiRouterContext>
   </div>
@@ -110,6 +121,7 @@ import { MultiRouterContext } from 'vue-multi-router'
 Creates a multi-router instance.
 
 **Options:**
+
 - `history: RouterHistory` - Vue Router history instance
 - `routes: RouteRecordRaw[]` - Route definitions (same as Vue Router)
 - `historyOptions?: MultiRouterHistoryManagerOptions` - History management options
@@ -149,6 +161,7 @@ This is useful when contexts are nested inside shared layouts but should render 
 Component that defines a routing context boundary. By default, it also acts as an activator — clicking inside the context activates it.
 
 **Props:**
+
 - `type: string` - Context type identifier (for debugging/organization)
 - `name: string` - Unique context identifier
 - `location?: string` - Force specific location (overrides storage)
@@ -171,6 +184,7 @@ To disable the built-in activator:
 Standalone wrapper component that activates context on user interaction. Useful for advanced cases where you need fine-grained control over which element triggers activation, separate from the `MultiRouterContext` boundary.
 
 **Props:**
+
 - `prevent-class?: string` - CSS class that prevents activation on click
 - `as?: string` - HTML element to render as wrapper (default: fragment/div)
 
@@ -179,6 +193,7 @@ Standalone wrapper component that activates context on user interaction. Useful 
 Composable for accessing multi-router outside a context.
 
 **Returns:**
+
 - `activeContextKey: ComputedRef<string | undefined>` - Currently active context
 - `activeHistoryContextKey: ComputedRef<string | undefined>` - Context controlling browser URL
 - `setActive(contextKey: string, updateHistory?: boolean): void` - Activate a context
@@ -189,6 +204,7 @@ Composable for accessing multi-router outside a context.
 Composable for use inside a `MultiRouterContext`.
 
 **Returns:**
+
 - `manager: useMultiRouter()` - MultiRouter manager instance
 - `contextKey: string` - This context's key
 - `isActive: ComputedRef<boolean>` - Whether this context is active
@@ -241,7 +257,7 @@ const searchQuery = computed(() => route.query.q)
 ## Peer Dependencies
 
 - `vue`: ^3.0.0
-- `vue-router`: ^4.0.0 || ^5.0.0 
+- `vue-router`: ^4.0.0 || ^5.0.0
 
 ## License
 

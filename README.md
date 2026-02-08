@@ -42,7 +42,7 @@ import { createMultiRouter } from 'vue-multi-router'
 import { createWebHistory } from 'vue-router'
 
 export const multiRouter = createMultiRouter({
-  history: () => createWebHistory(),
+  history: createWebHistory(),
   routes: [
     {
       path: '/',
@@ -110,7 +110,7 @@ import { MultiRouterContext } from 'vue-multi-router'
 Creates a multi-router instance.
 
 **Options:**
-- `history: () => RouterHistory` - Factory function returning a Vue Router history instance
+- `history: RouterHistory` - Vue Router history instance
 - `routes: RouteRecordRaw[]` - Route definitions (same as Vue Router)
 - `historyOptions?: MultiRouterHistoryManagerOptions` - History management options
 

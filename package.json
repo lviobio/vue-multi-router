@@ -48,7 +48,7 @@
   },
   "peerDependencies": {
     "vue": "^3.5.0",
-    "vue-router": "^4.0.0"
+    "vue-router": "^4.0.0 || ^5.0.0"
   },
   "devDependencies": {
     "vitepress": "^1.6.3",

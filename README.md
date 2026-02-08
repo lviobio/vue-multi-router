@@ -240,8 +240,8 @@ const searchQuery = computed(() => route.query.q)
 
 ## Peer Dependencies
 
-- `vue`: ^3.5.0
-- `vue-router`: ^4.0.0
+- `vue`: ^3.0.0
+- `vue-router`: ^4.0.0 || ^5.0.0 
 
 ## License
 

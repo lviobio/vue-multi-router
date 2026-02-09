@@ -23,5 +23,18 @@ export type {
   VirtualStack,
 } from './history'
 
+// Activation strategies
+export type {
+  ActivationStrategy,
+  ActivationStrategyFactory,
+  ActivationStrategyContext,
+} from './activation-strategies'
+export {
+  ImmediateActivationStrategy,
+  StabilizationActivationStrategy,
+  immediateActivation,
+  stabilizationActivation,
+} from './activation-strategies'
+
 // Injection symbols (for advanced usage)
 export { multiRouterContextManagerKey, multiRouterContextKey } from './injectionSymbols'

@@ -1,8 +1,11 @@
 <script lang="ts">
 import { defineComponent, h, onBeforeUnmount, type PropType, provide, type Ref, watch } from 'vue'
+import type { RouteLocationRaw } from 'vue-router'
 import { multiRouterContextActivateCallbacksKey } from '@/injectionSymbols'
 import { multiRouterContext } from '@/symbols'
 import { useMultiRouter } from '@/composables/useMultiRouter'
+
+type LocationProp = string | RouteLocationRaw
 
 function withContextActivateCallbacks(name: string, activeContextKey: Ref<string | undefined>) {
   const multiRouterActivatedCallbacks: Array<(name: string) => void> = []
@@ -27,11 +30,11 @@ const MultiRouterContextInner = defineComponent({
       required: true,
     },
     location: {
-      type: String,
+      type: [String, Object] as PropType<LocationProp>,
       required: false,
     },
     initialLocation: {
-      type: String,
+      type: [String, Object] as PropType<LocationProp>,
       required: false,
     },
     historyEnabled: {
@@ -51,7 +54,8 @@ const MultiRouterContextInner = defineComponent({
       default: null,
     },
   },
-  setup(props, { slots }) {
+  emits: ['update:location'],
+  setup(props, { slots, emit }) {
     const { manager, activeContextKey } = useMultiRouter()
 
     console.debug('[MultiRouterContext] setup', {
@@ -76,6 +80,14 @@ const MultiRouterContextInner = defineComponent({
     provide(multiRouterContext, props.name)
 
     withContextActivateCallbacks(props.name, activeContextKey)
+
+    // Watch router navigation and emit location changes for v-model:location support.
+    // If location prop was passed as an object, emit the resolved route object to match the format.
+    const useObjectEmit = typeof props.location === 'object' && props.location !== null
+    const router = manager.getRouter(props.name)
+    router.afterEach((to) => {
+      emit('update:location', useObjectEmit ? to : to.fullPath)
+    })
 
     onBeforeUnmount(() => {
       manager.unregister(props.name)
@@ -126,11 +138,11 @@ export default defineComponent({
       required: true,
     },
     location: {
-      type: String,
+      type: [String, Object] as PropType<LocationProp>,
       required: false,
     },
     initialLocation: {
-      type: String,
+      type: [String, Object] as PropType<LocationProp>,
       required: false,
     },
     /**
@@ -170,14 +182,22 @@ export default defineComponent({
       default: null,
     },
   },
-  setup(props, { slots }) {
+  emits: ['update:location'],
+  setup(props, { slots, emit }) {
     // Render inner component with key=name+location to force full re-mount when either changes
     // initialLocation is not in key because it's only used as fallback
+    const locationKey = (loc: LocationProp | undefined) =>
+      loc === undefined || loc === null ? '' : typeof loc === 'string' ? loc : JSON.stringify(loc)
+
+    const onUpdateLocation = (location: LocationProp) => {
+      emit('update:location', location)
+    }
+
     return () =>
       h(
         MultiRouterContextInner,
         {
-          key: `${props.name}:${props.location ?? ''}`,
+          key: `${props.name}:${locationKey(props.location)}`,
           type: props.type,
           name: props.name,
           location: props.location,
@@ -186,6 +206,7 @@ export default defineComponent({
           default: props.default,
           activator: props.activator,
           preventClass: props.preventClass,
+          'onUpdate:location': onUpdateLocation,
         },
         slots.default,
       )

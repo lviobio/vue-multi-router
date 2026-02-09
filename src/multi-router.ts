@@ -1,3 +1,4 @@
+import type { ActivationStrategyFactory } from '@/activation-strategies'
 import { MultiRouterManagerInstance } from '@/contextManager'
 import type { MultiRouterHistoryManagerOptions } from '@/history'
 import { multiRouterContextManagerKey, multiRouterOriginalDepthKey } from '@/injectionSymbols'
@@ -167,6 +168,16 @@ type MultiRouterInterface = {
 
 type CustomRouterOptions = RouterOptions & {
   historyOptions?: MultiRouterHistoryManagerOptions
+  /**
+   * Strategy for choosing which context to activate during app startup.
+   *
+   * - `immediateActivation()` (default) — each context tries to activate as
+   *   soon as its router is ready (original behaviour).
+   * - `stabilizationActivation(delay?)` — waits until no new contexts have
+   *   registered for `delay` ms, then picks the best context to activate.
+   *   Use this when `<MultiRouterContext>` components are inside `<Suspense>`.
+   */
+  activationStrategy?: ActivationStrategyFactory
 }
 
 export function createMultiRouter(options: CustomRouterOptions): MultiRouterInterface {
@@ -192,6 +203,7 @@ export function createMultiRouter(options: CustomRouterOptions): MultiRouterInte
         app,
         { history: options.history, ...options.historyOptions },
         makeRouter,
+        options.activationStrategy,
       )
       app.provide(multiRouterContextManagerKey, contextManager)
 

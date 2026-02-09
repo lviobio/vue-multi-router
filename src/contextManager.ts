@@ -1,11 +1,16 @@
 import {
+  type ActivationStrategy,
+  type ActivationStrategyFactory,
+  immediateActivation,
+} from '@/activation-strategies'
+import {
   mapMaybePromise,
   MultiRouterHistoryManager,
   type MultiRouterHistoryManagerOptions,
   type MaybePromise,
 } from '@/history'
 import { shallowRef, type App } from 'vue'
-import type { Router, RouterHistory } from 'vue-router'
+import type { RouteLocationRaw, Router, RouterHistory } from 'vue-router'
 
 type ContextInterface = {
   type: string
@@ -35,11 +40,15 @@ export class MultiRouterManagerInstance {
   private registered: Map<string, ContextInterface> = new Map()
   private onContextInitListeners: ContextInitListener[] = []
   private readonly historyManager: MultiRouterHistoryManager
+  private readonly activationStrategy: ActivationStrategy
+  private defaultContextKey: string | null = null
+  private lastRegisteredKey: string | null = null
 
   constructor(
     app: App,
     historyManagerOptions: HistoryManagerOptions,
     private makeRouter: MakeRouterFn,
+    activationStrategyFactory?: ActivationStrategyFactory,
   ) {
     const { history, ...historyOptions } = historyManagerOptions
     this.historyManager = new MultiRouterHistoryManager(history, {
@@ -55,6 +64,11 @@ export class MultiRouterManagerInstance {
           this.activeHistoryContext.value = { key: contextKey, data: context }
         }
       },
+    })
+
+    const factory = activationStrategyFactory ?? immediateActivation()
+    this.activationStrategy = factory({
+      resolveActivation: () => this.resolveActivation(),
     })
   }
 
@@ -152,12 +166,41 @@ export class MultiRouterManagerInstance {
     return this.registered.has(key)
   }
 
+  /**
+   * Resolves a route location (string or named route object) to a path string.
+   * Uses any already-registered context router for resolution (they all share
+   * the same route configuration). This avoids the need for a separate
+   * resolver router and correctly handles routes added at runtime.
+   */
+  resolveLocation(location: RouteLocationRaw): string {
+    if (typeof location === 'string') return location
+
+    const router = this.getAnyRouter()
+    if (!router) {
+      throw new Error(
+        '[MultiRouter] Cannot resolve RouteLocationRaw: no context routers registered yet. ' +
+          'Use a string path for the first context, or register at least one context before ' +
+          'using named route objects.',
+      )
+    }
+
+    return router.resolve(location).fullPath
+  }
+
+  /**
+   * Returns any registered router (they all share the same route config).
+   */
+  private getAnyRouter(): Router | null {
+    const first = this.registered.values().next()
+    return first.done ? null : first.value.router
+  }
+
   public register(
     type: string,
     key: string,
     options?: {
-      location?: string
-      initialLocation?: string
+      location?: string | RouteLocationRaw
+      initialLocation?: string | RouteLocationRaw
       historyEnabled?: boolean
       default?: boolean
     },
@@ -165,9 +208,14 @@ export class MultiRouterManagerInstance {
     const historyEnabled = options?.historyEnabled ?? true
     const isDefault = options?.default ?? false
 
+    const resolvedLocation = options?.location ? this.resolveLocation(options.location) : undefined
+    const resolvedInitialLocation = options?.initialLocation
+      ? this.resolveLocation(options.initialLocation)
+      : undefined
+
     const historyResult = this.historyManager.createContextHistory(key, {
-      location: options?.location,
-      initialLocation: options?.initialLocation,
+      location: resolvedLocation,
+      initialLocation: resolvedInitialLocation,
       historyEnabled,
     })
 
@@ -188,6 +236,11 @@ export class MultiRouterManagerInstance {
 
       router.isReady().then(() => {
         this.markAsStarted()
+        this.lastRegisteredKey = key
+
+        if (isDefault) {
+          this.defaultContextKey = key
+        }
 
         // Try to restore activeHistoryContext if this context was the last history context
         mapMaybePromise(
@@ -200,35 +253,12 @@ export class MultiRouterManagerInstance {
           },
         )
 
-        // Auto-activate if this was the last active context before reload
-        // Or activate as default if no saved context exists
-        const lastActiveKey = this.historyManager.getLastActiveContextKey()
-        mapMaybePromise(lastActiveKey, (resolvedLastActiveKey: string | null) => {
-          if (resolvedLastActiveKey === key && !this.activeContext.value) {
-            console.debug('[MultiRouterContextManager] Auto-activating last active context', {
-              key,
-            })
-            this.setActive(key, true)
-          } else if (!this.activeContext.value) {
-            // Check if saved context doesn't exist (was deleted)
-            const savedContextExists =
-              resolvedLastActiveKey && this.registered.has(resolvedLastActiveKey)
+        // Delegate activation decision to the strategy
+        const shouldActivateImmediately = this.activationStrategy.onContextReady(key)
 
-            if (!savedContextExists) {
-              // Saved context doesn't exist - activate this one as fallback
-              if (isDefault || !resolvedLastActiveKey) {
-                console.debug('[MultiRouterContextManager] Activating default context', {
-                  key,
-                  historyEnabled,
-                })
-                this.setActive(key, true)
-              } else {
-                // Try to activate from context stack, or use this context as last resort
-                this.activateFromStackOrFallback(key)
-              }
-            }
-          }
-        })
+        if (shouldActivateImmediately) {
+          this.tryImmediateActivation(key, isDefault)
+        }
       })
     })
   }
@@ -246,6 +276,8 @@ export class MultiRouterManagerInstance {
     if (context) {
       console.debug('[MultiRouterContextManager] unregister', { key })
 
+      this.activationStrategy.onContextRemoved(key)
+
       // If this was the active context, switch to previous one from the stack
       if (this.activeContext.value?.key === key) {
         this.fallbackToPreviousContext()
@@ -259,6 +291,98 @@ export class MultiRouterManagerInstance {
       this.historyManager.removeContextHistory(key)
       this.registered.delete(key)
     }
+  }
+
+  /**
+   * Original per-context activation logic (used by ImmediateActivationStrategy).
+   * Tries to activate the context immediately based on saved state or default flag.
+   */
+  private tryImmediateActivation(key: string, isDefault: boolean) {
+    const lastActiveKey = this.historyManager.getLastActiveContextKey()
+    mapMaybePromise(lastActiveKey, (resolvedLastActiveKey: string | null) => {
+      if (resolvedLastActiveKey === key && !this.activeContext.value) {
+        console.debug('[MultiRouterContextManager] Auto-activating last active context', {
+          key,
+        })
+        this.setActive(key, true)
+      } else if (!this.activeContext.value) {
+        // Check if saved context doesn't exist (was deleted)
+        const savedContextExists =
+          resolvedLastActiveKey && this.registered.has(resolvedLastActiveKey)
+
+        if (!savedContextExists) {
+          // Saved context doesn't exist - activate this one as fallback
+          if (isDefault || !resolvedLastActiveKey) {
+            console.debug('[MultiRouterContextManager] Activating default context', {
+              key,
+            })
+            this.setActive(key, true)
+          } else {
+            // Try to activate from context stack, or use this context as last resort
+            this.activateFromStackOrFallback(key)
+          }
+        }
+      }
+    })
+  }
+
+  /**
+   * Deferred activation logic (used by StabilizationActivationStrategy).
+   * Called once when the strategy decides all contexts have been registered.
+   * Picks the best context to activate using the following priority:
+   *
+   * 1. Previously-saved context from storage (if it now exists in registered map).
+   * 2. Context marked with `default: true`.
+   * 3. Last registered context.
+   * 4. Any registered context.
+   */
+  private resolveActivation() {
+    if (this.activeContext.value) return // already activated (e.g. via manual setActive)
+
+    const lastActiveKey = this.historyManager.getLastActiveContextKey()
+    mapMaybePromise(lastActiveKey, (resolvedLastActiveKey: string | null) => {
+      if (this.activeContext.value) return // re-check after potential async
+
+      // 1. Try to restore the saved context
+      if (resolvedLastActiveKey && this.registered.has(resolvedLastActiveKey)) {
+        console.debug('[MultiRouterContextManager] resolveActivation: restoring saved context', {
+          key: resolvedLastActiveKey,
+        })
+        this.setActive(resolvedLastActiveKey, true)
+        return
+      }
+
+      // 2. Try the default context
+      if (this.defaultContextKey && this.registered.has(this.defaultContextKey)) {
+        console.debug('[MultiRouterContextManager] resolveActivation: activating default context', {
+          key: this.defaultContextKey,
+        })
+        this.setActive(this.defaultContextKey, true)
+        return
+      }
+
+      // 3. Try the last registered context
+      if (this.lastRegisteredKey && this.registered.has(this.lastRegisteredKey)) {
+        console.debug(
+          '[MultiRouterContextManager] resolveActivation: activating last registered context',
+          { key: this.lastRegisteredKey },
+        )
+        this.setActive(this.lastRegisteredKey, true)
+        return
+      }
+
+      // 4. Any registered context
+      if (this.registered.size > 0) {
+        const firstKey = this.registered.keys().next().value
+        if (firstKey) {
+          console.debug(
+            '[MultiRouterContextManager] resolveActivation: activating first available context',
+            { key: firstKey },
+          )
+          this.setActive(firstKey, true)
+        }
+      }
+    })
   }
 
   private activateFromStackOrFallback(fallbackKey: string) {

@@ -14,7 +14,7 @@ const { activeContextKey, setActive } = useMultiRouter()
       <span data-testid="active-context">{{ activeContextKey ?? 'none' }}</span>
     </p>
 
-    <div style="display: flex; gap: 8px; margin-bottom: 16px">
+    <div class="toolbar">
       <button data-testid="activate-panel-a" @click="setActive('panel-a', false)">
         Activate Panel A
       </button>
@@ -23,26 +23,16 @@ const { activeContextKey, setActive } = useMultiRouter()
       </button>
     </div>
 
-    <div style="display: flex; gap: 16px">
-      <MultiRouterContext
-        type="panel"
-        name="panel-a"
-        initial-location="/page-a"
-        :activator="false"
-      >
-        <div data-testid="panel-a">
+    <div class="panels">
+      <MultiRouterContext type="panel" name="panel-a" initial-location="/page-a" :activator="false">
+        <div class="panel" data-testid="panel-a">
           <strong>Panel A</strong>
           <RouterView />
         </div>
       </MultiRouterContext>
 
-      <MultiRouterContext
-        type="panel"
-        name="panel-b"
-        initial-location="/page-b"
-        :activator="false"
-      >
-        <div data-testid="panel-b">
+      <MultiRouterContext type="panel" name="panel-b" initial-location="/page-b" :activator="false">
+        <div class="panel" data-testid="panel-b">
           <strong>Panel B</strong>
           <RouterView />
         </div>

@@ -11,3 +11,5 @@ export const multiRouterContextActivateCallbacksKey: InjectionKey<Array<(name: s
   Symbol('multi-router-context-activated-callbacks')
 
 export const multiRouterOriginalDepthKey: InjectionKey<Ref<number> | number> = Symbol()
+
+export const multiRouterOriginalDepthContextKey: InjectionKey<string | undefined> = Symbol()

@@ -1,7 +1,11 @@
 import type { ActivationStrategyFactory } from '@/activation-strategies'
 import { MultiRouterManagerInstance } from '@/contextManager'
 import type { MultiRouterHistoryManagerOptions } from '@/history'
-import { multiRouterContextManagerKey, multiRouterOriginalDepthKey } from '@/injectionSymbols'
+import {
+  multiRouterContextManagerKey,
+  multiRouterOriginalDepthContextKey,
+  multiRouterOriginalDepthKey,
+} from '@/injectionSymbols'
 import { multiRouterContext } from '@/symbols'
 import {
   type App,
@@ -114,9 +118,13 @@ function installContextAwareRouterResolvers(app: App, contextManager: MultiRoute
     get() {
       const instance = getCurrentInstance()
       const originalDepthRef = instance?.provides[multiRouterOriginalDepthKey]
+      const depthContextKey = instance?.provides[multiRouterOriginalDepthContextKey]
+      const currentContextKey = instance?.provides[multiRouterContext]
 
       return computed(() => {
-        const originalDepth = originalDepthRef?.value || 0
+        // Ignore depth inherited from a different context — each context starts at 0.
+        const originalDepth =
+          depthContextKey === currentContextKey ? originalDepthRef?.value || 0 : 0
         const injectedRoute = instance?.provides[routerViewLocationKey]
           .value as RouteLocationNormalizedLoadedGeneric
 
@@ -135,6 +143,7 @@ function installContextAwareRouterResolvers(app: App, contextManager: MultiRoute
       const instance = getCurrentInstance()
 
       instance.provides[multiRouterOriginalDepthKey] = value
+      instance.provides[multiRouterOriginalDepthContextKey] = instance.provides[multiRouterContext]
     },
   })
 

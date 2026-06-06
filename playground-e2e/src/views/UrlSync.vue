@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { MultiRouterContext, useMultiRouter } from 'vue-multi-router'
 import ContextStatus from '../components/ContextStatus.vue'
+import HistoryControls from '../components/HistoryControls.vue'
 
 const { activeContextKey, activeHistoryContextKey } = useMultiRouter()
 </script>
@@ -44,6 +45,7 @@ const { activeContextKey, activeHistoryContextKey } = useMultiRouter()
         <section class="panel" data-testid="no-history-panel">
           <strong>No History</strong>
           <ContextStatus />
+          <HistoryControls />
           <RouterView />
         </section>
       </MultiRouterContext>

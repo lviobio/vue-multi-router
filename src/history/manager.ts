@@ -375,6 +375,11 @@ export class MultiRouterHistoryManager {
     if (previousKey && this.stacks.has(previousKey)) {
       this.activeHistoryContextKey = previousKey
       this.stacks.saveActiveHistoryContext(previousKey)
+
+      // Sync the browser URL to the new owner's location (mirrors setActiveHistoryContext).
+      // Otherwise the URL keeps pointing at the removed context's route and gets
+      // adopted into the last active context's stack after a reload.
+      this.restoreUrlFromVirtualStack(previousKey)
     } else {
       this.activeHistoryContextKey = null
       this.stacks.clearActiveHistoryContext()

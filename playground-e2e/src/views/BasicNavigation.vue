@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { MultiRouterContext } from 'vue-multi-router'
+import HistoryControls from '../components/HistoryControls.vue'
 </script>
 
 <template>
@@ -12,6 +13,8 @@ import { MultiRouterContext } from 'vue-multi-router'
           <RouterLink data-testid="go-page-a" to="/page-a">Page A</RouterLink>
           <RouterLink data-testid="go-page-b" to="/page-b">Page B</RouterLink>
         </nav>
+
+        <HistoryControls />
 
         <RouterView />
       </div>

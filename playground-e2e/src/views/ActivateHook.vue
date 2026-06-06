@@ -18,11 +18,21 @@ const showCounterTwo = ref(true)
       <span data-testid="active-context">{{ activeContextKey ?? 'none' }}</span>
     </p>
 
+    <!-- mousedown.stop: these controls must not switch activation to main,
+         the remount tests rely on the panel staying active -->
     <div class="toolbar">
-      <button data-testid="toggle-counter-one" @click="showCounterOne = !showCounterOne">
+      <button
+        data-testid="toggle-counter-one"
+        @mousedown.stop
+        @click="showCounterOne = !showCounterOne"
+      >
         Toggle counter one
       </button>
-      <button data-testid="toggle-counter-two" @click="showCounterTwo = !showCounterTwo">
+      <button
+        data-testid="toggle-counter-two"
+        @mousedown.stop
+        @click="showCounterTwo = !showCounterTwo"
+      >
         Toggle counter two
       </button>
     </div>

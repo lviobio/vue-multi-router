@@ -11,9 +11,15 @@ const { contextKey } = useMultiRouterContext()
 const value = ref('')
 
 watch(value, (v) => {
+  const next = v ? v : undefined
+  // Skip redundant pushes: when the value was just synced FROM the query, a
+  // same-location push would cancel other in-flight navigations (e.g. the
+  // PanelRouteGuard redirect on boot)
+  if ((route.query.value ?? undefined) === next) return
+
   router.push({
     ...route,
-    query: { ...route.query, value: v ? v : undefined },
+    query: { ...route.query, value: next },
   })
 })
 

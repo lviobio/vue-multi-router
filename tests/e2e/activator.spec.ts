@@ -26,11 +26,25 @@ test.describe('context activation via activator', () => {
     await page.getByTestId('act-one-panel').click({ position: { x: 5, y: 5 } })
     await expect(page.getByTestId('active-context')).toHaveText('act-one')
 
-    // Panel Two opts out of the built-in activator (:activator="false")
+    // Panel Two opts out of the built-in activator (:activator="false"),
+    // so the mousedown bubbles up to the surrounding main context instead
     await page.getByTestId('act-two-outside').click()
 
-    await expect(page.getByTestId('active-context')).toHaveText('act-one')
     await expect(page.getByTestId('act-two-is-active')).toHaveText('false')
+    await expect(page.getByTestId('active-context')).toHaveText('main')
+  })
+
+  test('clicking empty space activates the main context', async ({ page }) => {
+    await page.goto(PAGE)
+
+    await page.getByTestId('act-one-panel').click({ position: { x: 5, y: 5 } })
+    await expect(page.getByTestId('active-context')).toHaveText('act-one')
+
+    // The heading is outside any panel — the mousedown reaches the main activator
+    await page.getByRole('heading', { name: 'Activator' }).click()
+
+    await expect(page.getByTestId('active-context')).toHaveText('main')
+    await expect(page.getByTestId('act-one-is-active')).toHaveText('false')
   })
 
   test('MultiRouterContextActivator activates the surrounding context', async ({ page }) => {

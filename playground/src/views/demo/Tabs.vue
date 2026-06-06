@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, nextTick, watch } from 'vue'
-import { useSessionStorage } from '@vueuse/core'
+import { useSessionStorage, useTitle } from '@vueuse/core'
 import { NButton, NH1, NTabPane, NTabs, NText } from 'naive-ui'
 import { MultiRouterContext, useMultiRouter } from '../../../../src'
 
-const { setActive, hasContext, activeContextKey } = useMultiRouter()
+const { setActive, hasContext, activeContextKey, manager } = useMultiRouter()
 
 interface ITab {
   name: string
@@ -70,6 +70,24 @@ async function reset() {
   tabs.value = initialValueBuilder()
   activeTabName.value = `tab-${tabs.value[0]?.position}`
 }
+
+const pageTitle = computed(() => {
+  const key = activeContextKey.value
+  if (!key || !hasContext(key)) return 'Vue Multi Router - Demo'
+
+  const tab = tabs.value.find((t) => `tab-${t.position}` === key)
+  if (!tab) return 'Vue Multi Router - Demo'
+
+  const router = manager.getRouter(key)
+  const inputValue = (router.currentRoute.value.query.value as string) || ''
+
+  const parts = [tab.name]
+  if (inputValue) parts.push(inputValue)
+
+  return parts.join(' | ')
+})
+
+useTitle(pageTitle)
 </script>
 
 <template>

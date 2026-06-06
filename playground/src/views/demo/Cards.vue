@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, nextTick } from 'vue'
-import { useSessionStorage } from '@vueuse/core'
+import { useSessionStorage, useTitle } from '@vueuse/core'
 import { NButton, NCard, NH1, NIcon, NText } from 'naive-ui'
 import { Add as AddIcon } from '@vicons/ionicons5'
 import { MultiRouterContext, useMultiRouter } from '../../../../src'
 
-const { setActive, hasContext } = useMultiRouter()
+const { setActive, hasContext, activeContextKey, manager } = useMultiRouter()
 
 interface ICard {
   name: string
@@ -54,6 +54,24 @@ async function reset() {
   await nextTick()
   cards.value = initialValueBuilder()
 }
+
+const pageTitle = computed(() => {
+  const key = activeContextKey.value
+  if (!key || !hasContext(key)) return 'Vue Multi Router - Demo'
+
+  const card = cards.value.find((c) => `card-${c.position}` === key)
+  if (!card) return 'Vue Multi Router - Demo'
+
+  const router = manager.getRouter(key)
+  const inputValue = (router.currentRoute.value.query.value as string) || ''
+
+  const parts = [card.name]
+  if (inputValue) parts.push(inputValue)
+
+  return parts.join(' | ')
+})
+
+useTitle(pageTitle)
 </script>
 
 <template>

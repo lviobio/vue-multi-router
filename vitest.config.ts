@@ -8,6 +8,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: [],
+    include: ['tests/unit/**/*.test.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'json-summary'],
@@ -16,6 +17,8 @@ export default defineConfig({
         'src/**/*.d.ts',
         'src/**/*.test.ts',
         'src/**/*.spec.ts',
+        'src/**/types.ts',
+        'src/index.ts',
         '**/node_modules/**',
         '**/dist/**',
         '**/.{idea,git,cache,output,temp}/**',
@@ -24,7 +27,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': resolve(__dirname, './src'),
+      '@': resolve(import.meta.dirname, './src'),
     },
   },
 })

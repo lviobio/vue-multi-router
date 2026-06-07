@@ -14,9 +14,9 @@ function createMultiRouter(options: MultiRouterOptions): MultiRouter
 
 | Property            | Type                  | Required | Description                                            |
 |---------------------|-----------------------|----------|--------------------------------------------------------|
-| `history`           | `() => RouterHistory` | Yes      | Vue Router history instance                            |
-| `routes`            | `RouteRecordRaw[]`    | Yes      | Route definitions                                      |
-| `contextSwitchMode` | `'push' \| 'replace'` | No       | How to handle URL on context switch. Default: `'push'` |
+| `history`                          | `() => RouterHistory`           | Yes      | Vue Router history instance                                 |
+| `routes`                           | `RouteRecordRaw[]`              | Yes      | Route definitions                                           |
+| `historyOptions.contextSwitchMode` | `'none' \| 'replace' \| 'push'` | No       | How to handle URL on context switch. Default: `'replace'`   |
 
 ## Returns
 
@@ -43,7 +43,7 @@ const routes = [
 const multiRouter = createMultiRouter({
   history: createWebHistory(),
   routes,
-  contextSwitchMode: 'push',
+  historyOptions: { contextSwitchMode: 'push' },
 })
 
 // Use the router with Vue

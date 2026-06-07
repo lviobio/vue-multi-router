@@ -61,6 +61,7 @@ class ContextHistoryProxy implements RouterHistory {
 
 const CONTEXT_KEY_STATE = '__multiRouterContext'
 const STACK_INDEX_STATE = '__multiRouterStackIndex'
+const POSITIONS_STATE = '__multiRouterPositions'
 
 /**
  * Defines how the browser URL is updated when switching between contexts.
@@ -400,6 +401,66 @@ export class MultiRouterHistoryManager {
     }
   }
 
+  /**
+   * Snapshot of every history-enabled context's virtual stack position.
+   * Stored in each browser history entry's state so that popstate can restore
+   * ALL contexts to where they were at that moment — not just the entry's
+   * owner. Without it, entries evicted from the shared browser timeline (e.g.
+   * by a `replace`-mode context switch) leave their context stranded: nothing
+   * in the timeline points at its newer positions anymore, so forward replay
+   * skips them (panel keeps an empty input after back+forward).
+   */
+  private capturePositionsSnapshot(): Record<string, number> {
+    const positions: Record<string, number> = {}
+    for (const [key, context] of this.stacks.entries()) {
+      if (context.historyEnabled) {
+        positions[key] = context.virtualStack.position
+      }
+    }
+    return positions
+  }
+
+  /**
+   * Reposition every history-enabled context to the snapshot recorded in the
+   * target history entry. The owner context is excluded — the regular popstate
+   * flow handles it (with activation and ensureEntriesUpTo).
+   */
+  private applyPositionsSnapshot(
+    snapshot: Record<string, number>,
+    ownerContextKey: string,
+    info: NavigationInformation,
+  ): void {
+    for (const [key, position] of Object.entries(snapshot)) {
+      if (key === ownerContextKey) continue
+
+      const context = this.stacks.get(key)
+      if (!context || !context.historyEnabled) continue
+
+      const currentPosition = context.virtualStack.position
+      if (
+        position === currentPosition ||
+        position < 0 ||
+        position >= context.virtualStack.entries.length
+      ) {
+        continue
+      }
+
+      const from = context.virtualStack.entries[currentPosition]?.location
+      this.stacks.setPosition(key, position)
+      const to = context.virtualStack.entries[position]?.location
+
+      console.debug('[MultiRouterHistory] popstate snapshot reposition', {
+        contextKey: key,
+        from: currentPosition,
+        to: position,
+      })
+
+      if (to && from && to !== from) {
+        this.stacks.notifyListeners(key, to, from, info)
+      }
+    }
+  }
+
   private restoreUrlFromVirtualStack(contextKey: string): void {
     if (this.contextSwitchMode === 'none') {
       return
@@ -415,6 +476,7 @@ export class MultiRouterHistoryManager {
       ...entry.state,
       [CONTEXT_KEY_STATE]: contextKey,
       [STACK_INDEX_STATE]: context.virtualStack.position,
+      [POSITIONS_STATE]: this.capturePositionsSnapshot(),
     }
 
     if (this.contextSwitchMode === 'push') {
@@ -437,6 +499,9 @@ export class MultiRouterHistoryManager {
   ): void {
     const stateContextKey = this.history.state?.[CONTEXT_KEY_STATE] as string | undefined
     const stateStackIndex = this.history.state?.[STACK_INDEX_STATE] as number | undefined
+    const statePositions = this.history.state?.[POSITIONS_STATE] as
+      | Record<string, number>
+      | undefined
 
     console.debug('[MultiRouterHistory] popstate raw', {
       stateContextKey,
@@ -471,6 +536,13 @@ export class MultiRouterHistoryManager {
     }
 
     if (!ownerContextKey) return
+
+    // Restore every other context to its recorded position first, so the
+    // whole app reflects the historical state of this entry — not only the
+    // context that owns it
+    if (statePositions) {
+      this.applyPositionsSnapshot(statePositions, ownerContextKey, info)
+    }
 
     const context = this.stacks.get(ownerContextKey)!
 
@@ -520,6 +592,7 @@ export class MultiRouterHistoryManager {
         ...data,
         [CONTEXT_KEY_STATE]: contextKey,
         [STACK_INDEX_STATE]: stackIndex,
+        [POSITIONS_STATE]: this.capturePositionsSnapshot(),
       })
     }
 
@@ -542,6 +615,7 @@ export class MultiRouterHistoryManager {
         ...data,
         [CONTEXT_KEY_STATE]: contextKey,
         [STACK_INDEX_STATE]: stackIndex,
+        [POSITIONS_STATE]: this.capturePositionsSnapshot(),
       })
     }
 

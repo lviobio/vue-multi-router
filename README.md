@@ -124,7 +124,50 @@ Creates a multi-router instance.
 
 - `history: RouterHistory` - Vue Router history instance
 - `routes: RouteRecordRaw[]` - Route definitions (same as Vue Router)
-- `historyOptions?: MultiRouterHistoryManagerOptions` - History management options
+- `historyOptions?: MultiRouterHistoryManagerOptions` - History management options (see below)
+
+### Browser History & Back/Forward
+
+All contexts share the single browser history timeline, while each context also keeps its own
+virtual navigation stack. Two mechanisms control how they interact:
+
+**`historyOptions.contextSwitchMode: 'none' | 'replace' | 'push'`** (default: `'replace'`) —
+how the browser URL is updated when the active context changes:
+
+- `'replace'` - The URL switches to the new context's location by replacing the current history
+  entry. Context switches never add back/forward steps: the timeline contains only real
+  navigations (pushes).
+- `'push'` - Switching to a context whose URL differs from the current one pushes a new history
+  entry. Every switch becomes its own back/forward step, giving the most granular replay at the
+  cost of a longer history.
+- `'none'` - Context switches never touch the URL. It changes only when the active context
+  itself navigates.
+
+**Position snapshots.** Every browser history entry records the virtual-stack positions of _all_
+history-enabled contexts at the moment it was created (in `history.state`). On back/forward the
+whole snapshot is applied, so the entire app — every panel, not just the context that owns the
+entry — returns to the exact state it had at that point in the timeline.
+
+Activation on back/forward also follows the recorded history: each entry is owned by the context
+that was active when the entry was created, and traversing onto an entry re-activates its owner.
+
+**Replay granularity in `'replace'` mode.** Because context switches replace the current entry,
+the previous context's latest entry can be evicted from the shared timeline. Its state is not
+lost — the following entries' snapshots still reference it — but the evicted moment is no longer
+a separate back/forward stop. Example with two panels:
+
+1. Click into panel-1, type `q` (pushes `?value=q`)
+2. Click into panel-2 (replaces that entry), type `a` (pushes `?value=a`)
+
+Going back twice undoes both inputs; going forward twice restores both (`q` and `a`). But steps
+1 and 2 share one history transition: forward restores panel-1's `q` and activates panel-2 in
+the same step — exactly the combined historical state, since "panel-1 active with `q`" was
+evicted as a standalone stop. If every action must be replayable as its own step, use
+`contextSwitchMode: 'push'`.
+
+Note that pushes from an _inactive_ context only update its virtual stack — they never create
+browser history entries. Later snapshots still capture the new position, so the state is
+restored on replay, but there is no dedicated back/forward step for it.
 
 ### Route Meta Options
 

@@ -100,6 +100,48 @@ test.describe('dynamic contexts (add/remove)', () => {
     await expect(page).toHaveURL(PAGE)
   })
 
+  test('browser back/forward replays typing across two panels symmetrically', async ({ page }) => {
+    await page.goto(PAGE)
+
+    await page.getByTestId('add-panel').click()
+    await expect(page.getByTestId('panel-2')).toBeVisible()
+
+    // Click activates each panel, typing pushes its query into browser history:
+    // panel-1 → ?value=q, then panel-2 → ?value=a
+    await page.getByTestId('panel-1-input').click()
+    await expect(page.getByTestId('active-context')).toHaveText('panel-1')
+    await page.getByTestId('panel-1-input').pressSequentially('q')
+    await expect(page.getByTestId('panel-1-fullpath')).toHaveText('/query-page?value=q')
+
+    await page.getByTestId('panel-2-input').click()
+    await expect(page.getByTestId('active-context')).toHaveText('panel-2')
+    await page.getByTestId('panel-2-input').pressSequentially('a')
+    await expect(page.getByTestId('panel-2-fullpath')).toHaveText('/query-page?value=a')
+
+    // Undo both pushes. Each step restores the full historical state of ALL
+    // panels (positions snapshot), not just the entry's owner context
+    await page.goBack()
+    await expect(page.getByTestId('panel-2-input')).toHaveValue('')
+    await expect(page.getByTestId('panel-1-input')).toHaveValue('q')
+
+    await page.goBack()
+    await expect(page.getByTestId('panel-1-input')).toHaveValue('')
+    await expect(page.getByTestId('panel-2-input')).toHaveValue('')
+
+    // …and redo them. Before the positions snapshot, the replace-mode context
+    // switch evicted panel-1's ?value=q entry from the browser timeline, so
+    // forward replay left panel-1 stranded with an empty input
+    await page.goForward()
+    await expect(page.getByTestId('panel-1-input')).toHaveValue('q')
+    await expect(page.getByTestId('panel-2-input')).toHaveValue('')
+
+    await page.goForward()
+    await expect(page.getByTestId('panel-1-input')).toHaveValue('q')
+    await expect(page.getByTestId('panel-2-input')).toHaveValue('a')
+    await expect(page.getByTestId('panel-1-fullpath')).toHaveText('/query-page?value=q')
+    await expect(page.getByTestId('panel-2-fullpath')).toHaveText('/query-page?value=a')
+  })
+
   test('panels and their state are restored after a reload', async ({ page }) => {
     await page.goto(PAGE)
 

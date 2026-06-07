@@ -51,6 +51,10 @@ const MultiRouterContextInner = defineComponent({
       type: Boolean,
       default: true,
     },
+    keepHistory: {
+      type: Boolean,
+      default: false,
+    },
     default: {
       type: Boolean,
       default: false,
@@ -91,6 +95,7 @@ const MultiRouterContextInner = defineComponent({
       location: props.location,
       initialLocation: props.initialLocation,
       historyEnabled: props.historyEnabled,
+      keepHistory: props.keepHistory,
       default: props.default,
     })
 
@@ -188,6 +193,17 @@ export default defineComponent({
       default: true,
     },
     /**
+     * Whether the persisted history of this context should survive unmounting.
+     * When true, unregistering the context keeps its virtual stack in storage,
+     * so the next registration of the same context restores it (location and
+     * position included) instead of starting from initialLocation.
+     * @default false
+     */
+    keepHistory: {
+      type: Boolean,
+      default: false,
+    },
+    /**
      * Whether this context should be activated by default if no prior active context exists.
      * Only one context should have this set to true.
      * @default false
@@ -236,6 +252,7 @@ export default defineComponent({
           location: props.location,
           initialLocation: props.initialLocation,
           historyEnabled: props.historyEnabled,
+          keepHistory: props.keepHistory,
           default: props.default,
           activator: props.activator,
           preventClass: props.preventClass,

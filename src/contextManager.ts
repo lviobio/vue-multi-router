@@ -19,6 +19,7 @@ type ContextInterface = {
   history: RouterHistory
   initialized: boolean
   historyEnabled: boolean
+  keepHistory: boolean
 }
 
 export interface ActiveContextInterface {
@@ -226,6 +227,7 @@ export class MultiRouterManagerInstance {
       initialLocation?: string | RouteLocationRaw
       historyEnabled?: boolean
       default?: boolean
+      keepHistory?: boolean
     },
   ): MaybePromise<void> {
     // With an async storage adapter the same key may be registered again
@@ -236,6 +238,7 @@ export class MultiRouterManagerInstance {
 
     const historyEnabled = options?.historyEnabled ?? true
     const isDefault = options?.default ?? false
+    const keepHistory = options?.keepHistory ?? false
 
     const resolvedLocation = options?.location ? this.resolveLocation(options.location) : undefined
     const resolvedInitialLocation = options?.initialLocation
@@ -257,6 +260,7 @@ export class MultiRouterManagerInstance {
         history,
         initialized: false,
         historyEnabled,
+        keepHistory,
       })
 
       router.push(history.location).catch((err) => {
@@ -324,7 +328,9 @@ export class MultiRouterManagerInstance {
         this.clearHistoryContext(key)
       }
 
-      this.historyManager.removeContextHistory(key)
+      // With keepHistory the persisted stack survives the unregistration and
+      // gets restored when the context registers again
+      this.historyManager.removeContextHistory(key, context.keepHistory)
       this.registered.delete(key)
     }
   }

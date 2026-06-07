@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createTestManager, waitFor } from './utils/test-helpers'
+import { createTestManager, nextTick, waitFor } from './utils/test-helpers'
 
 describe('MultiRouterManagerInstance', () => {
   describe('has', () => {
@@ -109,6 +109,55 @@ describe('MultiRouterManagerInstance', () => {
       manager.unregister('ctx-a')
       // Should not throw
       expect(() => manager.unregister('ctx-a')).not.toThrow()
+    })
+
+    it('starts over from initialLocation after a plain unregister', async () => {
+      const { manager } = createTestManager()
+      manager.register('panel', 'ctx-main')
+      manager.register('drawer', 'ctx-plain', { initialLocation: '/page-a' })
+      await waitFor(() => manager.getRouter('ctx-plain').currentRoute.value.fullPath === '/page-a')
+
+      await manager.getRouter('ctx-plain').push('/page-b')
+      await nextTick() // flush the deferred storage save
+
+      manager.unregister('ctx-plain')
+      manager.register('drawer', 'ctx-plain', { initialLocation: '/page-a' })
+      await waitFor(() => manager.getRouter('ctx-plain').currentRoute.value.fullPath === '/page-a')
+    })
+
+    it('keeps the current entry positions snapshot in sync with background pushes', async () => {
+      const { manager, history } = createTestManager()
+      manager.register('panel', 'ctx-main')
+      manager.register('drawer', 'ctx-bg', { initialLocation: '/page-a' })
+      await manager.getRouter('ctx-main').isReady()
+      await waitFor(() => manager.getRouter('ctx-bg').currentRoute.value.fullPath === '/page-a')
+
+      manager.setActive('ctx-main', true)
+      // Creates a browser entry owned by ctx-main; its snapshot records ctx-bg at 0
+      await manager.getRouter('ctx-main').push('/page-b')
+
+      // A background navigation must refresh the current entry's snapshot,
+      // so back-navigation restores the state the user left, not the stale one
+      await manager.getRouter('ctx-bg').push('/page-b')
+
+      const positions = (history.state as Record<string, unknown>).__multiRouterPositions as
+        | Record<string, number>
+        | undefined
+      expect(positions?.['ctx-bg']).toBe(1)
+    })
+
+    it('restores the previous location after unregister when keepHistory is set', async () => {
+      const { manager } = createTestManager()
+      manager.register('panel', 'ctx-main')
+      manager.register('drawer', 'ctx-keep', { initialLocation: '/page-a', keepHistory: true })
+      await waitFor(() => manager.getRouter('ctx-keep').currentRoute.value.fullPath === '/page-a')
+
+      await manager.getRouter('ctx-keep').push('/page-b')
+      await nextTick() // flush the deferred storage save
+
+      manager.unregister('ctx-keep')
+      manager.register('drawer', 'ctx-keep', { initialLocation: '/page-a', keepHistory: true })
+      await waitFor(() => manager.getRouter('ctx-keep').currentRoute.value.fullPath === '/page-b')
     })
   })
 

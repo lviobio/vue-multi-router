@@ -254,8 +254,14 @@ export class MultiRouterHistoryManager {
     })
   }
 
-  removeContextHistory(contextKey: string): void {
-    this.stacks.remove(contextKey)
+  /**
+   * Remove a context's runtime history state.
+   * With `keepStorage` the persisted virtual stack survives, so a later
+   * registration of the same context restores it (see the `keepHistory`
+   * option of MultiRouterContext).
+   */
+  removeContextHistory(contextKey: string, keepStorage: boolean = false): void {
+    this.stacks.remove(contextKey, keepStorage)
 
     if (this.activeHistoryContextKey === contextKey) {
       this.fallbackToPreviousHistoryContext()
@@ -298,6 +304,43 @@ export class MultiRouterHistoryManager {
     this.restoreUrlFromVirtualStack(contextKey)
 
     console.debug('[MultiRouterHistory] setActiveHistoryContext', {
+      from: previousKey,
+      to: contextKey,
+    })
+  }
+
+  /**
+   * Make a context the active history context without syncing the browser URL.
+   * Used on popstate: the browser already shows the entry owned by the context,
+   * so only the ownership bookkeeping has to follow. Otherwise the manager keeps
+   * attributing the URL to the previous context and a later
+   * setActiveHistoryContext() back to it becomes a no-op, leaving a stale URL.
+   */
+  private adoptActiveHistoryContext(contextKey: string): void {
+    if (this.activeHistoryContextKey === contextKey) {
+      return
+    }
+
+    if (!this.stacks.isHistoryEnabled(contextKey)) {
+      return
+    }
+
+    const previousKey = this.activeHistoryContextKey
+
+    if (previousKey) {
+      this.historyContextStack = this.historyContextStack.filter((k) => k !== previousKey)
+      this.historyContextStack.push(previousKey)
+    }
+
+    // Remove new active context from stack (it shouldn't be there)
+    this.historyContextStack = this.historyContextStack.filter((k) => k !== contextKey)
+    this.stacks.saveHistoryContextStack(this.historyContextStack)
+
+    this.activeHistoryContextKey = contextKey
+    this.stacks.saveActiveContext(contextKey)
+    this.stacks.saveActiveHistoryContext(contextKey)
+
+    console.debug('[MultiRouterHistory] adoptActiveHistoryContext', {
       from: previousKey,
       to: contextKey,
     })
@@ -557,6 +600,11 @@ export class MultiRouterHistoryManager {
     this.stacks.ensureEntriesUpTo(ownerContextKey, newPosition, to)
 
     if (newPosition >= 0 && newPosition < context.virtualStack.entries.length) {
+      // The browser entry records its owner's location at this stack index.
+      // If the virtual entry disagrees (e.g. it was backfilled after the
+      // persisted stack was reset), the browser URL is authoritative.
+      this.stacks.syncEntryLocation(ownerContextKey, newPosition, to)
+
       const previousLocation =
         context.virtualStack.entries[context.virtualStack.position]?.location ?? from
       this.stacks.setPosition(ownerContextKey, newPosition)
@@ -573,6 +621,10 @@ export class MultiRouterHistoryManager {
         delta: info.delta,
       })
 
+      // The browser URL now shows this entry, so its owner takes over as the
+      // active history context (without touching the URL)
+      this.adoptActiveHistoryContext(ownerContextKey)
+
       // Activate the context that owns this history entry
       if (this.onContextActivate) {
         this.onContextActivate(ownerContextKey)
@@ -580,6 +632,38 @@ export class MultiRouterHistoryManager {
 
       this.stacks.notifyListeners(ownerContextKey, targetLocation, previousLocation, info)
     }
+  }
+
+  /**
+   * A background context navigated while another context owns the current
+   * browser entry. Refresh that entry's positions snapshot so navigating back
+   * to it restores every context to the state the user left it in — not the
+   * state it had when the entry was created.
+   */
+  private refreshCurrentEntryPositions(): void {
+    const state = this.history.state
+    if (!state || state[CONTEXT_KEY_STATE] === undefined) {
+      return
+    }
+
+    // Skip the replaceState call when nothing moved — a background replace()
+    // keeps positions intact, and this runs on a hot path (e.g. every
+    // keystroke synced to an inactive context's query)
+    const positions = this.capturePositionsSnapshot()
+    const stored = state[POSITIONS_STATE] as Record<string, number> | undefined
+    const keys = Object.keys(positions)
+    if (
+      stored &&
+      keys.length === Object.keys(stored).length &&
+      keys.every((key) => stored[key] === positions[key])
+    ) {
+      return
+    }
+
+    this.history.replace(this.history.location, {
+      ...state,
+      [POSITIONS_STATE]: positions,
+    })
   }
 
   push(contextKey: string, to: HistoryLocation, data?: HistoryState): void {
@@ -594,6 +678,8 @@ export class MultiRouterHistoryManager {
         [STACK_INDEX_STATE]: stackIndex,
         [POSITIONS_STATE]: this.capturePositionsSnapshot(),
       })
+    } else {
+      this.refreshCurrentEntryPositions()
     }
 
     console.debug('[MultiRouterHistory] push', {
@@ -617,6 +703,8 @@ export class MultiRouterHistoryManager {
         [STACK_INDEX_STATE]: stackIndex,
         [POSITIONS_STATE]: this.capturePositionsSnapshot(),
       })
+    } else {
+      this.refreshCurrentEntryPositions()
     }
 
     console.debug('[MultiRouterHistory] replace', {

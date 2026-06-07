@@ -62,6 +62,25 @@ describe('VirtualStackManager', () => {
       expect(manager.has('ctx')).toBe(false)
     })
 
+    it('remove clears the persisted stack by default', async () => {
+      manager.create('ctx-clear', makeStack('/a'))
+      manager.push('ctx-clear', '/b', {})
+      await Promise.resolve() // flush the deferred save
+      manager.remove('ctx-clear')
+      expect(await manager.restore('ctx-clear')).toBeNull()
+    })
+
+    it('remove with keepStorage keeps the persisted stack', async () => {
+      manager.create('ctx-keep', makeStack('/a'))
+      manager.push('ctx-keep', '/b', {})
+      await Promise.resolve() // flush the deferred save
+      manager.remove('ctx-keep', true)
+      expect(manager.has('ctx-keep')).toBe(false)
+      const restored = await manager.restore('ctx-keep')
+      expect(restored?.entries.map((e) => e.location)).toEqual(['/a', '/b'])
+      expect(restored?.position).toBe(1)
+    })
+
     it('clears all contexts', () => {
       manager.create('ctx-a', makeStack())
       manager.create('ctx-b', makeStack('/b'))

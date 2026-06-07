@@ -51,11 +51,24 @@ const routes = [
         ],
       },
       {
+        path: 'demo/peek',
+        name: 'demo.peek',
+        component: () => import('./views/demo/Peek.vue'),
+      },
+      {
         path: 'demo/windows',
         name: 'demo.windows',
         component: () => import('./views/demo/Windows.vue'),
       },
     ],
+  },
+  {
+    // Standalone task page. Used as the "peek-drawer" context location (rendered
+    // inside the drawer) and as a regular page when the link is opened directly.
+    path: '/task/:id?',
+    name: 'task',
+    component: () => import('./views/demo/PeekTaskView.vue'),
+    meta: { multiRouterRoot: true },
   },
 ]
 

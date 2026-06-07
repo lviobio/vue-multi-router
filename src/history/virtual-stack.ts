@@ -37,9 +37,34 @@ export class VirtualStackManager {
     return this.contexts.get(contextKey)?.historyEnabled ?? true
   }
 
-  remove(contextKey: string): void {
+  remove(contextKey: string, keepStorage: boolean = false): void {
     this.contexts.delete(contextKey)
-    this.storage.clear(contextKey)
+    if (!keepStorage) {
+      this.storage.clear(contextKey)
+    }
+  }
+
+  /**
+   * Force the entry at `position` to the given location. Used on popstate:
+   * the browser entry is authoritative for its owner context's location, and
+   * the virtual entry can disagree when it was backfilled after the persisted
+   * stack was reset (e.g. a context re-registered with a fresh stack while
+   * older browser entries still reference higher stack indexes).
+   */
+  syncEntryLocation(contextKey: string, position: number, location: HistoryLocation): void {
+    const context = this.contexts.get(contextKey)
+    const entry = context?.virtualStack.entries[position]
+    if (!entry || entry.location === location) return
+
+    console.debug('[MultiRouterHistory] syncEntryLocation', {
+      contextKey,
+      position,
+      from: entry.location,
+      to: location,
+    })
+
+    entry.location = location
+    this.save(contextKey)
   }
 
   clear(): void {

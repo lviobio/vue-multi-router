@@ -2,6 +2,11 @@
 import { MultiRouterContext } from 'vue-multi-router'
 import PanelRouteGuard from './components/PanelRouteGuard.vue'
 
+// Opt-in per test: the guard redirects panel-only URLs home, which would
+// interfere with fixtures that deep-link into panel routes on purpose.
+// Tests enable it via page.addInitScript before navigation.
+const panelRouteGuardEnabled = localStorage.getItem('e2e-panel-route-guard') === '1'
+
 const routes = [
   { to: '/basic-navigation', label: 'Basic Navigation' },
   { to: '/context-switching', label: 'Context Switching' },
@@ -21,7 +26,7 @@ const routes = [
        space activates the main context; nested contexts stop propagation -->
   <MultiRouterContext type="main" name="main" default>
     <div class="layout">
-      <PanelRouteGuard />
+      <PanelRouteGuard v-if="panelRouteGuardEnabled" />
       <nav class="nav">
         <span class="nav-title">e2e fixtures</span>
         <div class="nav-links">

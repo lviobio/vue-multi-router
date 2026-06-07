@@ -5,6 +5,8 @@ const BASE = 'http://localhost:5176/e2e'
 
 test.describe('deep-linking into a fresh session', () => {
   test('a panel-only route URL redirects the main context home', async ({ page }) => {
+    // PanelRouteGuard is opt-in in the playground — enable it for this test
+    await page.addInitScript(() => localStorage.setItem('e2e-panel-route-guard', '1'))
     await page.goto(`${BASE}/query-page?id=direct`)
 
     // /query-page is panel content (meta.multiRouterRoot): without stored state

@@ -69,6 +69,9 @@ test.describe('session persistence across reloads', () => {
   test('reload after clearing sessionStorage while a panel owns the URL redirects home', async ({
     page,
   }) => {
+    // PanelRouteGuard is opt-in in the playground — enable it for this test
+    // (localStorage so it survives the sessionStorage.clear() below)
+    await page.addInitScript(() => localStorage.setItem('e2e-panel-route-guard', '1'))
     await page.goto(`${BASE}/dynamic-panels`)
 
     await page.getByTestId('add-panel').click()

@@ -11,6 +11,7 @@ import { VirtualStackStorage, type ContextStorageAdapter, type MaybePromise } fr
 export class VirtualStackManager {
   private contexts = new Map<string, ContextHistoryState>()
   private storage: VirtualStackStorage
+  private pendingSaves = new Set<string>()
 
   constructor(storageAdapter?: ContextStorageAdapter) {
     this.storage = new VirtualStackStorage(storageAdapter)
@@ -149,12 +150,25 @@ export class VirtualStackManager {
     context.listeners.forEach((callback) => callback(to, from, info))
   }
 
-  // Storage methods - return MaybePromise for async adapter support
-  save(contextKey: string): MaybePromise<void> {
-    const context = this.contexts.get(contextKey)
-    if (context) {
-      return this.storage.save(contextKey, context.virtualStack)
-    }
+  /**
+   * Persist a context's stack, coalescing all mutations within the current
+   * task into a single adapter write (a popstate can reposition several
+   * contexts, a push saves then immediately repositions, …). The microtask
+   * flush still runs before the browser processes navigation/unload.
+   */
+  save(contextKey: string): void {
+    if (this.pendingSaves.has(contextKey)) return
+    this.pendingSaves.add(contextKey)
+
+    queueMicrotask(() => {
+      this.pendingSaves.delete(contextKey)
+      // The context may have been removed while the save was pending —
+      // never resurrect a cleared stack
+      const context = this.contexts.get(contextKey)
+      if (context) {
+        this.storage.save(contextKey, context.virtualStack)
+      }
+    })
   }
 
   restore(contextKey: string): MaybePromise<VirtualStack | null> {

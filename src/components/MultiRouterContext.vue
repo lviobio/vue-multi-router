@@ -1,9 +1,19 @@
 <script lang="ts">
-import { defineComponent, h, onBeforeUnmount, type PropType, provide, type Ref, watch } from 'vue'
+import {
+  defineComponent,
+  h,
+  onBeforeUnmount,
+  type PropType,
+  provide,
+  type Ref,
+  shallowRef,
+  watch,
+} from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 import { multiRouterContextActivateCallbacksKey } from '@/injectionSymbols'
 import { multiRouterContext } from '@/symbols'
 import { useMultiRouter } from '@/composables/useMultiRouter'
+import { mapMaybePromise } from '@/history'
 
 type LocationProp = string | RouteLocationRaw
 
@@ -70,7 +80,14 @@ const MultiRouterContextInner = defineComponent({
       return () => slots.default?.()
     }
 
-    manager.register(props.type, props.name, {
+    // With an async storage adapter registration resolves later — children
+    // (and anything touching $route/$router) must not render until the
+    // context's router exists. Sync adapters resolve immediately, so `ready`
+    // is true before the first render and behavior is unchanged.
+    const ready = shallowRef(false)
+    let unmounted = false
+
+    const registration = manager.register(props.type, props.name, {
       location: props.location,
       initialLocation: props.initialLocation,
       historyEnabled: props.historyEnabled,
@@ -81,20 +98,34 @@ const MultiRouterContextInner = defineComponent({
 
     withContextActivateCallbacks(props.name, activeContextKey)
 
-    // Watch router navigation and emit location changes for v-model:location support.
-    // If location prop was passed as an object, emit the resolved route object to match the format.
-    const useObjectEmit = typeof props.location === 'object' && props.location !== null
-    const router = manager.getRouter(props.name)
-    router.afterEach((to) => {
-      emit('update:location', useObjectEmit ? to : to.fullPath)
+    mapMaybePromise(registration, () => {
+      if (unmounted) {
+        // Unmounted while the async registration was in flight — drop the
+        // context right away so it doesn't leak
+        manager.unregister(props.name)
+        return
+      }
+
+      // Watch router navigation and emit location changes for v-model:location support.
+      // If location prop was passed as an object, emit the resolved route object to match the format.
+      const useObjectEmit = typeof props.location === 'object' && props.location !== null
+      const router = manager.getRouter(props.name)
+      router.afterEach((to) => {
+        emit('update:location', useObjectEmit ? to : to.fullPath)
+      })
+
+      ready.value = true
     })
 
     onBeforeUnmount(() => {
-      manager.unregister(props.name)
+      unmounted = true
+      if (manager.has(props.name)) {
+        manager.unregister(props.name)
+      }
     })
 
     if (!props.activator) {
-      return () => slots.default?.()
+      return () => (ready.value ? slots.default?.() : null)
     }
 
     const onActivate = (e: MouseEvent) => {
@@ -115,6 +146,8 @@ const MultiRouterContextInner = defineComponent({
     }
 
     return () => {
+      if (!ready.value) return null
+
       const children = slots.default?.()
 
       if (children && children.length === 1) {

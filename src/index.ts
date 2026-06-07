@@ -23,6 +23,17 @@ export type {
   VirtualStack,
 } from './history'
 
+// Storage adapters — pass via `historyOptions.storageAdapter`.
+// Implement a custom backend by extending KeyValueStorageAdapter (3 methods,
+// sync or promise-based) or implementing ContextStorageAdapter directly.
+export type {
+  ContextStorageAdapter,
+  StoredVirtualStack,
+  MaybePromise,
+  IndexedDBStorageAdapterOptions,
+} from './history'
+export { KeyValueStorageAdapter, SessionStorageAdapter, IndexedDBStorageAdapter } from './history'
+
 // Activation strategies
 export type {
   ActivationStrategy,

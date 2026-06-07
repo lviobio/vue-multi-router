@@ -68,13 +68,35 @@ function goForward() {
 
 By default, vue-multi-router uses SessionStorage for history persistence. The history state is automatically saved and restored across page reloads.
 
+Other backends are pluggable via `historyOptions.storageAdapter`:
+
+```typescript
+import { createMultiRouter, IndexedDBStorageAdapter } from 'vue-multi-router'
+
+const multiRouter = createMultiRouter({
+  history: createWebHistory(),
+  historyOptions: { storageAdapter: new IndexedDBStorageAdapter() },
+  routes,
+})
+```
+
+To build a custom backend (e.g. a server API for sharing navigation state across devices),
+extend `KeyValueStorageAdapter` and implement `getItem` / `setItem` / `removeItem` — each may
+return a value synchronously or a `Promise`. With an asynchronous adapter a
+`<MultiRouterContext>` renders its children only after its state has been restored, and startup
+activation waits for all in-flight registrations.
+
 ### Storage Keys
 
 Each context's history is stored under a unique key based on the context name:
 
 ```
-vue-multi-router:history:{context-name}
+__multiRouter_stack_{context-name}
 ```
+
+plus a handful of bookkeeping keys (`__multiRouterActiveContext`,
+`__multiRouterActiveHistoryContext`, `__multiRouterContextStack`,
+`__multiRouterHistoryContextStack`).
 
 ## Context Activation
 

@@ -169,6 +169,65 @@ Note that pushes from an _inactive_ context only update its virtual stack — th
 browser history entries. Later snapshots still capture the new position, so the state is
 restored on replay, but there is no dedicated back/forward step for it.
 
+### Storage Adapters
+
+Each context's virtual stack (and the active-context bookkeeping) is persisted through a
+storage adapter, passed via `historyOptions.storageAdapter`:
+
+```typescript
+import { createMultiRouter, IndexedDBStorageAdapter } from 'vue-multi-router'
+
+const multiRouter = createMultiRouter({
+  history: createWebHistory(),
+  historyOptions: { storageAdapter: new IndexedDBStorageAdapter() },
+  routes,
+})
+```
+
+Built-in adapters:
+
+- `SessionStorageAdapter` (default) - per-tab persistence, survives reloads
+- `IndexedDBStorageAdapter` - survives the tab being closed, shared between same-origin tabs
+
+**Custom backends.** Extend `KeyValueStorageAdapter` and implement three methods — each may
+return a value synchronously or a `Promise`. Serialization, storage keys and error handling
+(a failing backend logs a warning instead of breaking navigation) are inherited:
+
+```typescript
+import { KeyValueStorageAdapter } from 'vue-multi-router'
+
+class ServerStorageAdapter extends KeyValueStorageAdapter {
+  protected async getItem(key: string): Promise<string | null> {
+    const res = await fetch(`/api/router-state/${encodeURIComponent(key)}`)
+    return res.ok ? res.text() : null
+  }
+  protected async setItem(key: string, value: string): Promise<void> {
+    await fetch(`/api/router-state/${encodeURIComponent(key)}`, { method: 'PUT', body: value })
+  }
+  protected async removeItem(key: string): Promise<void> {
+    await fetch(`/api/router-state/${encodeURIComponent(key)}`, { method: 'DELETE' })
+  }
+}
+```
+
+A server-backed adapter makes the navigation state shareable across devices. For full control
+(batching several keys into one request, custom wire format) implement the lower-level
+`ContextStorageAdapter` interface directly instead.
+
+**Asynchronous adapters are first-class.** When an adapter returns promises:
+
+- a `<MultiRouterContext>` renders its children only after its state has been restored
+  (synchronous adapters resolve immediately — nothing changes for them);
+- activation decisions on startup wait for all in-flight registrations, so a `default` context
+  cannot steal the activation (or the browser URL) from the saved one while it is still loading;
+- `setActive(key)` called while the context is still registering is deferred until registration
+  completes, and dropped if another activation happens in the meantime.
+
+**Write behavior.** The library optimizes adapter traffic, which matters for remote backends:
+mutations of the same stack within one task are coalesced into a single write, writing a value
+identical to the last written one is skipped, and writes are chained FIFO so out-of-order
+responses can never clobber newer state with older data.
+
 ### Route Meta Options
 
 **`multiRouterRoot: boolean`**

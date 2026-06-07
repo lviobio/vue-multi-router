@@ -4,6 +4,7 @@ import {
   immediateActivation,
 } from '@/activation-strategies'
 import {
+  isPromise,
   mapMaybePromise,
   MultiRouterHistoryManager,
   type MultiRouterHistoryManagerOptions,
@@ -38,6 +39,8 @@ export class MultiRouterManagerInstance {
   private activeContext = shallowRef<ActiveContextInterface>()
   private activeHistoryContext = shallowRef<ActiveContextInterface>()
   private registered: Map<string, ContextInterface> = new Map()
+  private pendingRegistrations: Map<string, Promise<void>> = new Map()
+  private activationSeq = 0
   private onContextInitListeners: ContextInitListener[] = []
   private readonly historyManager: MultiRouterHistoryManager
   private readonly activationStrategy: ActivationStrategy
@@ -95,11 +98,31 @@ export class MultiRouterManagerInstance {
   setActive(key: string, updateHistory: boolean) {
     const item = this.registered.get(key)
 
-    if (!item) throw new Error(`[MultiRouter] Context "${key}" not found`)
+    if (!item) {
+      // The context may still be registering through an async storage
+      // adapter — defer the activation until registration lands. If another
+      // activation is applied in the meantime (e.g. the user clicked into a
+      // different context), the deferred one is stale and gets dropped.
+      const pending = this.pendingRegistrations.get(key)
+      if (pending) {
+        console.debug('[MultiRouterContextManager] setActive deferred until registration', { key })
+        const seq = this.activationSeq
+        pending.then(() => {
+          if (this.registered.has(key) && this.activationSeq === seq) {
+            this.setActive(key, updateHistory)
+          }
+        })
+        return false
+      }
+
+      throw new Error(`[MultiRouter] Context "${key}" not found`)
+    }
 
     let modified = false
 
     if (this.activeContext.value?.key !== key) {
+      this.activationSeq++
+
       // Push current active context to stack before switching
       if (this.activeContext.value?.key) {
         this.historyManager.pushToContextStack(this.activeContext.value.key)
@@ -205,6 +228,12 @@ export class MultiRouterManagerInstance {
       default?: boolean
     },
   ): MaybePromise<void> {
+    // With an async storage adapter the same key may be registered again
+    // before the first registration resolves (e.g. a quick re-mount) —
+    // return the in-flight registration instead of starting a second one
+    const pending = this.pendingRegistrations.get(key)
+    if (pending) return pending
+
     const historyEnabled = options?.historyEnabled ?? true
     const isDefault = options?.default ?? false
 
@@ -219,7 +248,7 @@ export class MultiRouterManagerInstance {
       historyEnabled,
     })
 
-    return mapMaybePromise(historyResult, (history: RouterHistory) => {
+    const result = mapMaybePromise(historyResult, (history: RouterHistory) => {
       const router = this.makeRouter(key, history)
 
       this.registered.set(key, {
@@ -261,6 +290,13 @@ export class MultiRouterManagerInstance {
         }
       })
     })
+
+    if (isPromise(result)) {
+      this.pendingRegistrations.set(key, result)
+      result.finally(() => this.pendingRegistrations.delete(key))
+    }
+
+    return result
   }
 
   getContextLocation(key: string): string | undefined {
@@ -298,6 +334,18 @@ export class MultiRouterManagerInstance {
    * Tries to activate the context immediately based on saved state or default flag.
    */
   private tryImmediateActivation(key: string, isDefault: boolean) {
+    // With an async storage adapter other contexts may still be registering.
+    // Whether the saved active context "exists" depends on them — deciding
+    // now would let a default context steal the activation (and the browser
+    // URL) from the saved one. Re-evaluate once all in-flight registrations
+    // settle; the recursion re-checks in case new ones appeared meanwhile.
+    if (this.pendingRegistrations.size > 0) {
+      Promise.all(this.pendingRegistrations.values()).then(() =>
+        this.tryImmediateActivation(key, isDefault),
+      )
+      return
+    }
+
     const lastActiveKey = this.historyManager.getLastActiveContextKey()
     mapMaybePromise(lastActiveKey, (resolvedLastActiveKey: string | null) => {
       if (resolvedLastActiveKey === key && !this.activeContext.value) {

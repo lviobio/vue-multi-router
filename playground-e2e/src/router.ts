@@ -1,6 +1,7 @@
 import { createWebHistory } from 'vue-router'
 import {
   createMultiRouter,
+  IndexedDBStorageAdapter,
   stabilizationActivation,
   type ContextSwitchMode,
 } from 'vue-multi-router'
@@ -117,9 +118,16 @@ const activationStrategy =
     ? stabilizationActivation(300)
     : undefined
 
+// Specs can exercise the async (promise-based) storage path via
+// page.addInitScript(() => sessionStorage.setItem('e2e-storage-adapter', 'indexeddb'))
+const storageAdapter =
+  sessionStorage.getItem('e2e-storage-adapter') === 'indexeddb'
+    ? new IndexedDBStorageAdapter()
+    : undefined
+
 export const multiRouter = createMultiRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  historyOptions: { contextSwitchMode },
+  historyOptions: { contextSwitchMode, storageAdapter },
   activationStrategy,
   routes,
 })

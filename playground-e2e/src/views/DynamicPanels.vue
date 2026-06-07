@@ -3,7 +3,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { MultiRouterContext, useMultiRouter } from 'vue-multi-router'
 import ContextStatus from '../components/ContextStatus.vue'
 
-const { activeContextKey, setActive, hasContext } = useMultiRouter()
+const { activeContextKey, setActive } = useMultiRouter()
 
 const STORAGE_KEY = 'e2e-dynamic-panels'
 
@@ -28,11 +28,11 @@ async function addPanel() {
   const position = counter.value + 1
   const contextName = `panel-${position}`
   panels.value.push(position)
-  // Wait for the component to mount and register the context
+  // Wait for the component to mount and start registering the context.
+  // With an async storage adapter registration may still be in flight —
+  // setActive defers the activation until it completes.
   await nextTick()
-  if (hasContext(contextName)) {
-    setActive(contextName)
-  }
+  setActive(contextName)
 }
 
 function removePanel(position: number) {

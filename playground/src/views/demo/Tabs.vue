@@ -38,6 +38,10 @@ watch(
 async function onTabChange(tabName: string) {
   activeTabName.value = tabName
   await nextTick()
+  activateTabContext(tabName)
+}
+
+function activateTabContext(tabName: string) {
   if (hasContext(tabName)) {
     setActive(tabName)
   }
@@ -130,6 +134,10 @@ useTitle(pageTitle)
         :name="`tab-${tab.position}`"
         display-directive="show:lazy"
         :tab="tab.name"
+        :tab-props="{
+          class: 'prevent-context-activation',
+          onClick: () => activateTabContext(`tab-${tab.position}`),
+        }"
       >
         <MultiRouterContext
           type="tab"

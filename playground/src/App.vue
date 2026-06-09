@@ -13,7 +13,12 @@ import { MultiRouterContext } from '../../src'
     }"
   >
     <NMessageProvider>
-      <MultiRouterContext type="main" name="main" default>
+      <MultiRouterContext
+        type="main"
+        name="main"
+        default
+        prevent-class="prevent-context-activation n-tabs-tab--addable"
+      >
         <RouterView />
       </MultiRouterContext>
     </NMessageProvider>

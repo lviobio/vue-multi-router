@@ -139,9 +139,13 @@ const MultiRouterContextInner = defineComponent({
 
       const target = e.target as HTMLElement | null
 
-      if (props.preventClass && target?.closest('.' + props.preventClass)) {
-        shouldActivate = false
-      }
+      const preventClasses = props.preventClass ? props.preventClass.split(' ') : []
+
+      preventClasses.forEach((className) => {
+        if (target?.closest('.' + className)) {
+          shouldActivate = false
+        }
+      })
 
       if (shouldActivate) {
         if (manager.setActive(props.name, true)) {

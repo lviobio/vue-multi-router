@@ -2,6 +2,7 @@
 import {
   defineComponent,
   h,
+  inject,
   onBeforeUnmount,
   type PropType,
   provide,
@@ -59,6 +60,10 @@ const MultiRouterContextInner = defineComponent({
       type: Boolean,
       default: false,
     },
+    asRoot: {
+      type: Boolean,
+      default: false,
+    },
     activator: {
       type: Boolean,
       default: true,
@@ -91,12 +96,19 @@ const MultiRouterContextInner = defineComponent({
     const ready = shallowRef(false)
     let unmounted = false
 
+    // The enclosing context (if this one is rendered inside another context's
+    // content). Injected before we provide our own key, so it resolves to the
+    // parent — making nested contexts a first-class, auto-detected relationship.
+    const parent = inject(multiRouterContext, undefined)
+
     const registration = manager.register(props.type, props.name, {
       location: props.location,
       initialLocation: props.initialLocation,
       historyEnabled: props.historyEnabled,
       keepHistory: props.keepHistory,
       default: props.default,
+      asRoot: props.asRoot,
+      parent,
     })
 
     provide(multiRouterContext, props.name)
@@ -217,6 +229,17 @@ export default defineComponent({
       default: false,
     },
     /**
+     * Render the full route tree (layouts and all) instead of collapsing to the
+     * deepest route with `meta.multiRouterRoot`. Set this on the main/shell
+     * context so it shows whole pages, while sub-contexts (panels, drawers) still
+     * render only the fragment from the multiRouterRoot down.
+     * @default false
+     */
+    asRoot: {
+      type: Boolean,
+      default: false,
+    },
+    /**
      * Whether this context should act as an activator, activating the context on mousedown.
      * Set false to opt out of built-in activation behavior.
      * @default true
@@ -258,6 +281,7 @@ export default defineComponent({
           historyEnabled: props.historyEnabled,
           keepHistory: props.keepHistory,
           default: props.default,
+          asRoot: props.asRoot,
           activator: props.activator,
           preventClass: props.preventClass,
           'onUpdate:location': onUpdateLocation,

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { NConfigProvider, NMessageProvider } from 'naive-ui'
 import { MultiRouterContext } from '../../src'
+import AppDrawer from './views/AppDrawer.vue'
 </script>
 
 <template>
@@ -17,10 +18,15 @@ import { MultiRouterContext } from '../../src'
         type="main"
         name="main"
         default
+        as-root
         prevent-class="prevent-context-activation n-tabs-tab--addable"
       >
         <RouterView />
       </MultiRouterContext>
+
+      <!-- App-level drawer: a sibling context, so it can render any route on top
+           of whatever "main" is showing. Open it with a `drawer: true` navigation. -->
+      <AppDrawer />
     </NMessageProvider>
   </NConfigProvider>
 </template>

@@ -260,11 +260,15 @@ export class MultiRouterHistoryManager {
    * registration of the same context restores it (see the `keepHistory`
    * option of MultiRouterContext).
    */
-  removeContextHistory(contextKey: string, keepStorage: boolean = false): void {
+  removeContextHistory(
+    contextKey: string,
+    keepStorage: boolean = false,
+    parentHint?: string,
+  ): void {
     this.stacks.remove(contextKey, keepStorage)
 
     if (this.activeHistoryContextKey === contextKey) {
-      this.fallbackToPreviousHistoryContext()
+      this.fallbackToPreviousHistoryContext(parentHint)
     }
 
     // Remove from both stacks
@@ -273,6 +277,16 @@ export class MultiRouterHistoryManager {
 
     this.contextStack = this.contextStack.filter((k) => k !== contextKey)
     this.stacks.saveContextStack(this.contextStack)
+  }
+
+  /**
+   * Purge a context's persisted virtual stack from storage. Use after a
+   * `keepHistory` context is *intentionally* closed (not merely unmounted by a
+   * reload): keepHistory deliberately leaves the stored stack behind on
+   * unregister so a reload can restore it, which orphans it on a real close.
+   */
+  clearStoredContextHistory(contextKey: string): void {
+    this.stacks.clearStoredStack(contextKey)
   }
 
   setActiveHistoryContext(contextKey: string): void {
@@ -398,12 +412,24 @@ export class MultiRouterHistoryManager {
     return this.activeHistoryContextKey
   }
 
-  private fallbackToPreviousHistoryContext(): void {
+  private fallbackToPreviousHistoryContext(parentHint?: string): void {
     let previousKey = this.historyContextStack.pop()
 
     // Find a valid previous context (one that still exists)
     while (previousKey && !this.stacks.has(previousKey)) {
       previousKey = this.historyContextStack.pop()
+    }
+
+    // Secondary: when the previous-active stack is exhausted (e.g. after a
+    // reload), a closed nested context hands ownership to its parent rather than
+    // an arbitrary history-enabled context.
+    if (
+      !previousKey &&
+      parentHint &&
+      this.stacks.has(parentHint) &&
+      this.stacks.isHistoryEnabled(parentHint)
+    ) {
+      previousKey = parentHint
     }
 
     // If no previous context in stack, pick any registered context with historyEnabled

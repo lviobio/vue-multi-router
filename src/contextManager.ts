@@ -40,6 +40,12 @@ export class MultiRouterManagerInstance {
   private activeContext = shallowRef<ActiveContextInterface>()
   private activeHistoryContext = shallowRef<ActiveContextInterface>()
   private registered: Map<string, ContextInterface> = new Map()
+  // Parent of each nested context (a MultiRouterContext rendered inside another
+  // context's content). Drives fallback-to-parent on close and restore.
+  private parentOf: Map<string, string> = new Map()
+  // Contexts that render the full route tree (layouts and all) instead of
+  // collapsing to the deepest `multiRouterRoot`. Typically the main/shell context.
+  private rootContexts: Set<string> = new Set()
   private pendingRegistrations: Map<string, Promise<void>> = new Map()
   private activationSeq = 0
   private onContextInitListeners: ContextInitListener[] = []
@@ -47,6 +53,9 @@ export class MultiRouterManagerInstance {
   private readonly activationStrategy: ActivationStrategy
   private defaultContextKey: string | null = null
   private lastRegisteredKey: string | null = null
+  // Guard timer for restoring a saved active context that hasn't registered yet
+  // (see scheduleRestoreFallback). Debounced: fires once registrations settle.
+  private restoreFallbackTimer: ReturnType<typeof setTimeout> | null = null
 
   constructor(
     app: App,
@@ -135,6 +144,12 @@ export class MultiRouterManagerInstance {
       this.activeContext.value = {
         key,
         data: item,
+      }
+
+      // Something became active — the pending restore guard is no longer needed.
+      if (this.restoreFallbackTimer !== null) {
+        clearTimeout(this.restoreFallbackTimer)
+        this.restoreFallbackTimer = null
       }
 
       modified = true
@@ -228,8 +243,28 @@ export class MultiRouterManagerInstance {
       historyEnabled?: boolean
       default?: boolean
       keepHistory?: boolean
+      /** Key of the enclosing context, when this one is nested inside it. */
+      parent?: string
+      /**
+       * Render the full route tree (layouts and all) instead of collapsing to the
+       * deepest `multiRouterRoot`. Set on the main/shell context so it shows whole
+       * pages, while sub-contexts (panels, drawers) still render only the fragment.
+       */
+      asRoot?: boolean
     },
   ): MaybePromise<void> {
+    // Record the parent linkage eagerly (before any async storage work) so it's
+    // available even while registration is still in flight.
+    if (options?.parent && options.parent !== key) {
+      this.parentOf.set(key, options.parent)
+    }
+    // Record eagerly too — the view-depth resolver reads it during render.
+    if (options?.asRoot) {
+      this.rootContexts.add(key)
+    } else {
+      this.rootContexts.delete(key)
+    }
+
     // With an async storage adapter the same key may be registered again
     // before the first registration resolves (e.g. a quick re-mount) —
     // return the in-flight registration instead of starting a second one
@@ -313,26 +348,43 @@ export class MultiRouterManagerInstance {
 
   public unregister(key: string) {
     const context = this.registered.get(key)
-    if (context) {
-      console.debug('[MultiRouterContextManager] unregister', { key })
+    if (!context) return
 
-      this.activationStrategy.onContextRemoved(key)
+    console.debug('[MultiRouterContextManager] unregister', { key })
 
-      // If this was the active context, switch to previous one from the stack
-      if (this.activeContext.value?.key === key) {
-        this.fallbackToPreviousContext()
-      }
+    this.activationStrategy.onContextRemoved(key)
 
-      // If this was the active history context, clearHistoryContext will handle the fallback
-      if (this.activeHistoryContext.value?.key === key) {
-        this.clearHistoryContext(key)
-      }
+    const wasActive = this.activeContext.value?.key === key
+    const wasHistoryActive = this.activeHistoryContext.value?.key === key
+    // The parent is used as a *secondary* fallback: the previously-active stack
+    // wins (so sibling contexts fall back to each other), but when that stack is
+    // exhausted — e.g. after a reload, where it may not contain the parent — a
+    // closed nested context hands activation back to its parent instead of the
+    // app default, keeping the enclosing context on screen.
+    const parentHint = this.parentOf.get(key) ?? undefined
 
-      // With keepHistory the persisted stack survives the unregistration and
-      // gets restored when the context registers again
-      this.historyManager.removeContextHistory(key, context.keepHistory)
-      this.registered.delete(key)
+    // With keepHistory the persisted stack survives and is restored on re-register.
+    this.historyManager.removeContextHistory(key, context.keepHistory, parentHint)
+    this.registered.delete(key)
+    this.parentOf.delete(key)
+    this.rootContexts.delete(key)
+
+    if (wasActive) {
+      this.fallbackToPreviousContext(parentHint)
     }
+    if (wasHistoryActive) {
+      this.clearHistoryContext(key)
+    }
+  }
+
+  /** Whether `key` renders the full route tree instead of collapsing to multiRouterRoot. */
+  rendersAsRoot(key: string): boolean {
+    return this.rootContexts.has(key)
+  }
+
+  /** Key of the context that encloses `key`, or null if it isn't nested. */
+  getParent(key: string): string | null {
+    return this.parentOf.get(key) ?? null
   }
 
   /**
@@ -365,19 +417,51 @@ export class MultiRouterManagerInstance {
           resolvedLastActiveKey && this.registered.has(resolvedLastActiveKey)
 
         if (!savedContextExists) {
-          // Saved context doesn't exist - activate this one as fallback
-          if (isDefault || !resolvedLastActiveKey) {
+          if (resolvedLastActiveKey) {
+            // A saved active context exists in storage but hasn't registered yet
+            // — on reload it may still be mounting (e.g. a nested context whose
+            // parent renders it after starting up). Letting the default/this
+            // context grab activation now would push a browser history entry,
+            // then the saved context would re-activate with the matching URL (a
+            // replace) — churning history and breaking back/forward. Defer: the
+            // saved context self-activates when it registers (the branch above),
+            // or this guard falls back if it genuinely never does.
+            this.scheduleRestoreFallback()
+          } else if (isDefault) {
+            // Fresh start (no saved active context) — activate the default now.
             console.debug('[MultiRouterContextManager] Activating default context', {
               key,
             })
             this.setActive(key, true)
           } else {
-            // Try to activate from context stack, or use this context as last resort
-            this.activateFromStackOrFallback(key)
+            // Fresh start, and this is a NON-default context. Don't let it grab
+            // activation just because it became ready first — that would, e.g.,
+            // auto-open an app drawer pointed at its initial-location on a deep
+            // link. Defer so the default context wins; the guard falls back to
+            // the best available context if there is no default.
+            this.scheduleRestoreFallback()
           }
         }
       }
     })
+  }
+
+  /**
+   * Restoring a saved active context that hasn't registered yet: wait a beat for
+   * it (debounced — reset on each pending registration so it fires only once
+   * registrations settle). The saved context normally self-activates on
+   * registration before this runs; if it never registers (stale state), pick the
+   * best available context. Keeps reloads churn-free without the consumer having
+   * to opt into the stabilization activation strategy.
+   */
+  private scheduleRestoreFallback() {
+    if (this.restoreFallbackTimer !== null) {
+      clearTimeout(this.restoreFallbackTimer)
+    }
+    this.restoreFallbackTimer = setTimeout(() => {
+      this.restoreFallbackTimer = null
+      this.resolveActivation()
+    }, 50)
   }
 
   /**
@@ -439,35 +523,18 @@ export class MultiRouterManagerInstance {
     })
   }
 
-  private activateFromStackOrFallback(fallbackKey: string) {
-    // Already have an active context
-    if (this.activeContext.value) return
-
-    // Try to get context from stack
-    let contextKey = this.historyManager.popFromContextStack()
-    while (contextKey && !this.registered.has(contextKey)) {
-      contextKey = this.historyManager.popFromContextStack()
-    }
-
-    // Use fallback if stack is empty
-    if (!contextKey) {
-      contextKey = fallbackKey
-    }
-
-    if (contextKey && this.registered.has(contextKey)) {
-      console.debug('[MultiRouterContextManager] Activating from stack or fallback', {
-        key: contextKey,
-      })
-      this.setActive(contextKey, true)
-    }
-  }
-
-  private fallbackToPreviousContext() {
+  private fallbackToPreviousContext(parentHint?: string) {
     let previousKey = this.historyManager.popFromContextStack()
 
     // Find a valid previous context (one that still exists)
     while (previousKey && !this.registered.has(previousKey)) {
       previousKey = this.historyManager.popFromContextStack()
+    }
+
+    // Secondary: a closed nested context hands activation to its parent when the
+    // previous-active stack is exhausted (e.g. after a reload).
+    if (!previousKey && parentHint && this.registered.has(parentHint)) {
+      previousKey = parentHint
     }
 
     // If no previous context in stack, try activeHistoryContext

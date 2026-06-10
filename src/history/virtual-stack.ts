@@ -45,6 +45,15 @@ export class VirtualStackManager {
   }
 
   /**
+   * Purge a context's persisted virtual stack from storage without touching any
+   * in-memory state. Use to discard a `keepHistory` context that was kept on
+   * unregister (for reload restore) but is now intentionally closed.
+   */
+  clearStoredStack(contextKey: string): void {
+    this.storage.clear(contextKey)
+  }
+
+  /**
    * Force the entry at `position` to the given location. Used on popstate:
    * the browser entry is authoritative for its owner context's location, and
    * the virtual entry can disagree when it was backfilled after the persisted

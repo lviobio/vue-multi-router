@@ -15,6 +15,7 @@ import {
 } from 'vue'
 import {
   createRouter,
+  type RouteLocationRaw,
   routeLocationKey,
   type RouteLocationNormalized,
   type RouteLocationNormalizedLoaded,
@@ -125,6 +126,14 @@ function installContextAwareRouterResolvers(app: App, contextManager: MultiRoute
         // Ignore depth inherited from a different context — each context starts at 0.
         const originalDepth =
           depthContextKey === currentContextKey ? originalDepthRef?.value || 0 : 0
+        // Contexts that opt into rendering the full route tree (the main/shell
+        // context) don't collapse to a multiRouterRoot — they show whole pages,
+        // layouts and all. Sub-contexts (panels, drawers) still render only the
+        // fragment from the deepest multiRouterRoot down.
+        if (currentContextKey && contextManager.rendersAsRoot(currentContextKey)) {
+          return originalDepth
+        }
+
         const injectedRoute = instance?.provides[routerViewLocationKey]
           .value as RouteLocationNormalizedLoadedGeneric
 
@@ -175,6 +184,20 @@ type MultiRouterInterface = {
   install: (app: App) => void
 }
 
+/**
+ * Intercepts a navigation before it runs on a context's router. Invoked for every
+ * `push`/`replace` with the raw target — so custom `RouteLocationOptions` are still
+ * visible (Vue Router strips them before guards see them) — and the calling
+ * context. Return a thenable to take over the navigation (the normal push/replace
+ * is skipped); return `undefined` to let it proceed as usual. Lets an app route a
+ * navigation to a different context (e.g. open it in a drawer) based on its options.
+ */
+export type NavigationInterceptor = (context: {
+  to: RouteLocationRaw
+  contextKey: string
+  manager: MultiRouterManagerInstance
+}) => Promise<unknown> | undefined | void
+
 type CustomRouterOptions = RouterOptions & {
   historyOptions?: MultiRouterHistoryManagerOptions
   /**
@@ -187,6 +210,8 @@ type CustomRouterOptions = RouterOptions & {
    *   Use this when `<MultiRouterContext>` components are inside `<Suspense>`.
    */
   activationStrategy?: ActivationStrategyFactory
+  /** See {@link NavigationInterceptor}. Applied to every context's router. */
+  navigationInterceptor?: NavigationInterceptor
 }
 
 export function createMultiRouter(options: CustomRouterOptions): MultiRouterInterface {
@@ -204,6 +229,19 @@ export function createMultiRouter(options: CustomRouterOptions): MultiRouterInte
         })
 
         Object.assign(router, { contextKey })
+
+        // Let the app intercept navigations (and read custom location options) on
+        // this context's router. A returned thenable takes over; otherwise the
+        // original push/replace runs.
+        const { navigationInterceptor } = options
+        if (navigationInterceptor) {
+          const wrap = (original: Router['push']): Router['push'] =>
+            ((to) =>
+              navigationInterceptor({ to, contextKey, manager: contextManager }) ??
+              original(to)) as Router['push']
+          router.push = wrap(router.push.bind(router))
+          router.replace = wrap(router.replace.bind(router))
+        }
 
         return router
       }

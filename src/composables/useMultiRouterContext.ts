@@ -18,6 +18,14 @@ export function useMultiRouterContext() {
 
   const historyEnabled = computed(() => manager.getContextHistoryEnabled(contextKey))
 
+  // Nesting info (set when the context registers, so stable for its lifetime):
+  // the enclosing context key and how deep this context is nested (0 = top).
+  const parentKey = manager.getParent(contextKey)
+  let depth = 0
+  for (let ancestor = parentKey; ancestor; ancestor = manager.getParent(ancestor)) {
+    depth++
+  }
+
   const activate = (updateHistory = true) => {
     setActive(contextKey, updateHistory)
   }
@@ -25,6 +33,8 @@ export function useMultiRouterContext() {
   return {
     manager,
     contextKey,
+    parentKey,
+    depth,
     isActive,
     isHistoryActive,
     activeContextKey,

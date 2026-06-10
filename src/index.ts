@@ -1,5 +1,7 @@
 // Core function
 export { createMultiRouter } from './multi-router'
+export type { NavigationInterceptor } from './multi-router'
+export type { MultiRouterManagerInstance } from './contextManager'
 
 // Utils
 export { onMultiRouterContextActivate } from './hooks'
@@ -11,6 +13,10 @@ export { default as MultiRouterContextActivator } from './components/MultiRouter
 // Composables
 export { useMultiRouter } from './composables/useMultiRouter'
 export { useMultiRouterContext } from './composables/useMultiRouterContext'
+
+// Nested-context stack helper (stacked drawers, nested modals, master/detail …)
+export { createContextStack } from './context-stack'
+export type { ContextStack, ContextStackOptions } from './context-stack'
 
 // History types and utilities
 export type {

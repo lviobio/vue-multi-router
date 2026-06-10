@@ -27,6 +27,7 @@ npm install vue-multi-router
 
 - ✅ **Multiple Independent Routers** - Run multiple Vue Router instances simultaneously in a single app
 - ✅ **Context-Based Navigation** - Each routing context maintains its own navigation history
+- ✅ **Nested Contexts** - Render a `MultiRouterContext` inside another; the parent is auto-detected and used for activation/restore fallback
 - ✅ **Browser History Integration** - Back/forward buttons work across contexts with proper URL updates
 - ✅ **Session Persistence** - Context states persist across page reloads via SessionStorage or other implementations
 - ✅ **TypeScript Support** - Full type definitions included
@@ -258,6 +259,15 @@ const routes = [
 
 This is useful when contexts are nested inside shared layouts but should render independently from their root component.
 
+**Rendering the full tree with `as-root`.** The skip applies to _every_ context, including the main one. If your main/shell context can itself navigate to a `multiRouterRoot` route — e.g. the same route is shown as a full page in `main` and as a fragment inside a panel/drawer — give the main context the [`as-root`](#multiroutercontext) prop. It then renders the whole tree (layout included), while sub-contexts still collapse to the `multiRouterRoot`:
+
+```vue
+<!-- main shows the full page (Layout + …); a drawer/panel context renders only the fragment -->
+<MultiRouterContext type="main" name="main" default as-root>
+  <RouterView />
+</MultiRouterContext>
+```
+
 ### `<MultiRouterContext>`
 
 Component that defines a routing context boundary. By default, it also acts as an activator — clicking inside the context activates it.
@@ -269,7 +279,9 @@ Component that defines a routing context boundary. By default, it also acts as a
 - `location?: string` - Force specific location (overrides storage)
 - `initial-location?: string` - Initial location for new contexts
 - `history-enabled?: boolean` - Whether to track in browser history (default: `true`)
+- `keep-history?: boolean` - Keep the persisted virtual stack when the context unmounts, so re-registering the same context restores its location and position instead of starting from `initial-location` (default: `false`)
 - `default?: boolean` - Activate by default if no saved context exists
+- `as-root?: boolean` - Render the full route tree (layouts and all) instead of collapsing to the deepest `multiRouterRoot`. Set on the main/shell context so it shows whole pages, while sub-contexts render only the fragment (default: `false`). See [Route Meta Options](#route-meta-options)
 - `activator?: boolean` - Whether to activate context on mousedown (default: `true`). Set to `false` to opt out of built-in activation behavior
 - `prevent-class?: string` - CSS class that prevents activation on click, useful if you want to prevent activation on click of a button that destroys the context
 
@@ -309,6 +321,8 @@ Composable for use inside a `MultiRouterContext`.
 
 - `manager: useMultiRouter()` - MultiRouter manager instance
 - `contextKey: string` - This context's key
+- `parentKey: string | null` - Key of the enclosing context when nested inside another, otherwise `null`
+- `depth: number` - Nesting depth (`0` for a top-level context, `1` for one nested inside it, …)
 - `isActive: ComputedRef<boolean>` - Whether this context is active
 - `isHistoryActive: ComputedRef<boolean>` - Whether this context controls browser URL
 - `activeContextKey: ComputedRef<string>` - Currently active context key

@@ -62,6 +62,18 @@ const routes = [
     component: () => import('./views/NestedHost.vue'),
   },
   {
+    path: '/nested-contexts',
+    name: 'nested-contexts',
+    component: () => import('./views/nested-contexts/NestedContexts.vue'),
+  },
+  {
+    // Content of each nested-context panel (rendered inside its own context).
+    path: '/np/:id',
+    name: 'nested-panel',
+    component: () => import('./views/nested-contexts/NestedPanel.vue'),
+    meta: { multiRouterRoot: true },
+  },
+  {
     path: '/nested',
     component: () => import('./views/nested/NestedLayout.vue'),
     children: [

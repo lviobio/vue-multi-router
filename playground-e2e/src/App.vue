@@ -16,6 +16,7 @@ const routes = [
   { to: '/activate-hook', label: 'Activate Hook' },
   { to: '/location-control', label: 'Location Control' },
   { to: '/nested-host', label: 'Nested Routes' },
+  { to: '/nested-contexts', label: 'Nested Contexts' },
   { to: '/stabilization', label: 'Stabilization' },
   { to: '/edge-cases', label: 'Edge Cases' },
 ]

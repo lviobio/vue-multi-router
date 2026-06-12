@@ -27,7 +27,7 @@ const related = computed(() =>
     <ul class="related">
       <li v-for="rel in related" :key="rel.id">
         <RouterLink
-          :to="{ name: 'tasks.show', params: { id: rel.id }, drawer: true }"
+          :to="{ name: 'tasks.show', params: { id: rel.id }, panel: true }"
           #="{ navigate, href }"
           custom
         >

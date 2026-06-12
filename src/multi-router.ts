@@ -181,6 +181,7 @@ function installComponents(app: App) {
 
 type MultiRouterInterface = {
   getByContextName: (name: string) => Router
+  getManager: () => MultiRouterManagerInstance
   install: (app: App) => void
 }
 
@@ -196,6 +197,7 @@ export type NavigationInterceptor = (context: {
   to: RouteLocationRaw
   contextKey: string
   manager: MultiRouterManagerInstance
+  app: App
 }) => Promise<unknown> | undefined | void
 
 type CustomRouterOptions = RouterOptions & {
@@ -221,6 +223,7 @@ export function createMultiRouter(options: CustomRouterOptions): MultiRouterInte
     getByContextName: (name: string) => {
       return contextManager.getRouter(name)
     },
+    getManager: () => contextManager,
     install: (app: App) => {
       const makeRouter = (contextKey: string, history: RouterHistory): Router => {
         const router = createRouter({
@@ -237,7 +240,7 @@ export function createMultiRouter(options: CustomRouterOptions): MultiRouterInte
         if (navigationInterceptor) {
           const wrap = (original: Router['push']): Router['push'] =>
             ((to) =>
-              navigationInterceptor({ to, contextKey, manager: contextManager }) ??
+              navigationInterceptor({ to, contextKey, manager: contextManager, app }) ??
               original(to)) as Router['push']
           router.push = wrap(router.push.bind(router))
           router.replace = wrap(router.replace.bind(router))

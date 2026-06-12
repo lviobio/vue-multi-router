@@ -7,6 +7,19 @@ export interface StoredVirtualStack {
   position: number
 }
 
+/**
+ * Minimal generic key-value store (sync or promise-based). These are the three
+ * primitives a {@link KeyValueStorageAdapter} is built on, exposed as a public
+ * contract so app-level state — e.g. a panel manager (see `createPanelManager`)
+ * — can persist through the same storage backend the router uses. Obtain one
+ * scoped to an existing adapter via `KeyValueStorageAdapter.namespace(prefix)`.
+ */
+export interface KeyValueStore {
+  getItem(key: string): MaybePromise<string | null>
+  setItem(key: string, value: string): MaybePromise<void>
+  removeItem(key: string): MaybePromise<void>
+}
+
 export interface ContextStorageAdapter {
   saveStack(contextKey: string, stack: VirtualStack): MaybePromise<void>
   restoreStack(contextKey: string): MaybePromise<StoredVirtualStack | null>

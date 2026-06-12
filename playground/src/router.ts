@@ -1,6 +1,17 @@
+import { type App, inject } from 'vue'
 import { createWebHashHistory, createWebHistory } from 'vue-router'
-import { createMultiRouter, type NavigationInterceptor } from '../../src'
-import { useDrawerStack } from './composables/useDrawerStack'
+import {
+  createMultiRouter,
+  type KeyValueStorageAdapter,
+  type NavigationInterceptor,
+  SessionStorageAdapter,
+} from '../../src'
+import { createPanels, panelsKey } from './composables/usePanels'
+
+// One storage backend for the whole app — swap for new IndexedDBStorageAdapter()
+// and both the router history and the panels move with it. Configured here once
+// and reachable everywhere else via the manager's getStorageAdapter().
+const storageAdapter = new SessionStorageAdapter()
 
 const routes = [
   {
@@ -58,11 +69,6 @@ const routes = [
             component: () => import('./views/demo/Peek.vue'),
           },
           {
-            path: 'demo/drawer',
-            name: 'demo.drawer',
-            component: () => import('./views/demo/DrawerDemo.vue'),
-          },
-          {
             path: 'demo/windows',
             name: 'demo.windows',
             component: () => import('./views/demo/Windows.vue'),
@@ -87,28 +93,49 @@ const routes = [
   },
 ]
 
-// `router.push({ name, params, drawer: true })` opens that route in the shared app
-// drawer instead of the calling context (see vue-router.d.ts for the `drawer` flag).
-// Pushed from outside the drawer → opens the base drawer; from within a drawer →
-// stacks the route as a nested drawer on top. The drawer flag is stripped before
-// re-navigating so the drawer's own router push isn't intercepted again.
-const drawerStack = useDrawerStack()
-const navigationInterceptor: NavigationInterceptor = ({ to, contextKey, manager }) => {
-  if (!to || typeof to !== 'object' || !to.drawer) return
+// `router.push({ name, params, panel })` opens that route as a new panel (window)
+// instead of navigating the calling context (see vue-router.d.ts for the `panel`
+// flag). `panel: '<surfaceId>'` forces a surface; `panel: true` inherits the
+// surface of the originating panel (or the drawer when opened from a non-panel
+// context such as the main page). The flag is stripped before the panel opens.
+const navigationInterceptor: NavigationInterceptor = ({ to, contextKey, manager, app }) => {
+  if (!to || typeof to !== 'object' || !to.panel) return
+  // Reach the panel API (provided at app.use) from this non-component callback.
+  const panels = app.runWithContext(() => inject(panelsKey))
+  if (!panels) return
   const location = { ...to }
-  delete location.drawer
-  return drawerStack.checkContext(contextKey)
-    ? drawerStack.stackTo(drawerStack.depthOf(contextKey), location, manager)
-    : drawerStack.openBase(location, manager)
+  const flag = location.panel
+  delete location.panel
+
+  let surface = typeof flag === 'string' ? flag : undefined
+  if (!surface) {
+    const origin = panels.panels.value.find((p) => panels.contextName(p) === contextKey)
+    surface = origin?.surface ?? 'drawer'
+  }
+  return panels.open(location, surface, manager)
 }
 
-export const multiRouter = createMultiRouter({
+const base = createMultiRouter({
   history: import.meta.env.PROD
     ? createWebHashHistory(import.meta.env.BASE_URL)
     : createWebHistory(import.meta.env.BASE_URL),
   historyOptions: {
     contextSwitchMode: 'push',
+    storageAdapter,
   },
   routes,
   navigationInterceptor,
 })
+
+// Wrap the router plugin so the panel manager is created at app.use time (not at
+// module load): once the router is installed, pull the configured storage off the
+// manager, namespace it for panels, and provide the panel API.
+export const multiRouter = {
+  getByContextName: base.getByContextName,
+  install(app: App) {
+    base.install(app)
+    const manager = base.getManager()
+    const storage = (manager.getStorageAdapter() as KeyValueStorageAdapter).namespace('panels:')
+    app.provide(panelsKey, createPanels(storage))
+  },
+}

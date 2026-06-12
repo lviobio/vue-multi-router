@@ -18,6 +18,10 @@ export { useMultiRouterContext } from './composables/useMultiRouterContext'
 export { createContextStack } from './context-stack'
 export type { ContextStack, ContextStackOptions } from './context-stack'
 
+// Panel/window manager helper (move pages between host surfaces — drawer, modal …)
+export { createPanelManager } from './panel-manager'
+export type { Panel, PanelManager, PanelManagerOptions } from './panel-manager'
+
 // History types and utilities
 export type {
   MultiRouterHistoryManagerOptions,
@@ -37,8 +41,14 @@ export type {
   StoredVirtualStack,
   MaybePromise,
   IndexedDBStorageAdapterOptions,
+  KeyValueStore,
 } from './history'
-export { KeyValueStorageAdapter, SessionStorageAdapter, IndexedDBStorageAdapter } from './history'
+export {
+  KeyValueStorageAdapter,
+  SessionStorageAdapter,
+  IndexedDBStorageAdapter,
+  sessionKeyValueStore,
+} from './history'
 
 // Activation strategies
 export type {

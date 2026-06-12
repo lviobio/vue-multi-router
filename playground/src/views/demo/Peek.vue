@@ -8,10 +8,10 @@ import { tasks } from './tasks'
     <NH1>Peek Demo</NH1>
 
     <NText depth="2">
-      Open a task to peek at it in the shared app drawer. The drawer lives in its own router
-      context, so its state survives a reload — open a task and refresh the page: the drawer reopens
-      on top of the table. Open the same URL in a new tab (empty session storage) and the task
-      renders as a standalone page instead.
+      Open a task to peek at it as a panel. Each panel is its own router context, so many can be
+      open at once. Use the panel header to move it between surfaces — dock it as a drawer or detach
+      it into a free-floating, draggable window (open several!) — or Expand it to a full page. Panel
+      state, positions and which surface each lives on survive a reload.
     </NText>
     <p>
       <NText depth="3">All data is stored in session storage.</NText>
@@ -33,7 +33,7 @@ import { tasks } from './tasks'
           <td>{{ task.deadline }}</td>
           <td>
             <RouterLink
-              :to="{ name: 'tasks.show', params: { id: task.id }, drawer: true }"
+              :to="{ name: 'tasks.show', params: { id: task.id }, panel: 'drawer' }"
               #="{ navigate, href }"
               custom
             >

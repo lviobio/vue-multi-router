@@ -3,6 +3,7 @@ import {
   isPromise,
   mapMaybePromise,
   type ContextStorageAdapter,
+  type KeyValueStore,
   type MaybePromise,
   type StoredVirtualStack,
 } from './types'
@@ -61,6 +62,26 @@ export abstract class KeyValueStorageAdapter implements ContextStorageAdapter {
   protected abstract getItem(key: string): MaybePromise<string | null>
   protected abstract setItem(key: string, value: string): MaybePromise<void>
   protected abstract removeItem(key: string): MaybePromise<void>
+
+  /**
+   * Expose this adapter's backend as a generic, prefixed {@link KeyValueStore},
+   * so app-level state can be persisted through the same storage the router uses
+   * — configure storage once, share it. The prefix namespaces app keys away from
+   * the router's own keys.
+   *
+   * ```ts
+   * const adapter = new IndexedDBStorageAdapter()
+   * createMultiRouter({ historyOptions: { storageAdapter: adapter } })
+   * const panels = createPanelManager({ storage: adapter.namespace('panels:') })
+   * ```
+   */
+  namespace(prefix: string): KeyValueStore {
+    return {
+      getItem: (key) => this.getItem(`${prefix}${key}`),
+      setItem: (key, value) => this.setItem(`${prefix}${key}`, value),
+      removeItem: (key) => this.removeItem(`${prefix}${key}`),
+    }
+  }
 
   private getStackStorageKey(contextKey: string): string {
     return `${STACK_STORAGE_PREFIX}${contextKey}`

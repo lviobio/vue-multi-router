@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { createTestManager, nextTick, waitFor } from './utils/test-helpers'
+import {
+  createTestHistory,
+  createTestManager,
+  createTestRouter,
+  nextTick,
+  waitFor,
+} from './utils/test-helpers'
+import { MultiRouterManagerInstance } from '../../src/contextManager'
+import { SessionStorageAdapter } from '../../src/history'
 
 describe('MultiRouterManagerInstance', () => {
   describe('has', () => {
@@ -176,10 +184,7 @@ describe('MultiRouterManagerInstance', () => {
       manager.register('panel', 'ctx-a')
       manager.register('panel', 'ctx-b', { default: true })
 
-      await waitFor(
-        () => manager.getActiveContext() !== undefined,
-        { timeout: 2000 },
-      )
+      await waitFor(() => manager.getActiveContext() !== undefined, { timeout: 2000 })
       // The default context should win once ctx-a activates and ctx-b has default:true,
       // but with immediateActivation the first ready context activates first.
       // Since we cannot guarantee order, just verify something is active.
@@ -196,6 +201,24 @@ describe('MultiRouterManagerInstance', () => {
       const router = manager.getRouter('ctx-a')
       expect(router).toBeDefined()
       expect(typeof router.push).toBe('function')
+    })
+  })
+
+  describe('getStorageAdapter', () => {
+    it('defaults to a SessionStorageAdapter when none is configured', () => {
+      const { manager } = createTestManager()
+      expect(manager.getStorageAdapter()).toBeInstanceOf(SessionStorageAdapter)
+    })
+
+    it('returns the configured adapter instance', () => {
+      const adapter = new SessionStorageAdapter()
+      const history = createTestHistory()
+      const manager = new MultiRouterManagerInstance(
+        null as never,
+        { history, storageAdapter: adapter },
+        (_key, ctxHistory) => createTestRouter(ctxHistory),
+      )
+      expect(manager.getStorageAdapter()).toBe(adapter)
     })
   })
 })

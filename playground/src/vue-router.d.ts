@@ -5,9 +5,12 @@ export {}
 declare module 'vue-router' {
   interface RouteLocationOptions {
     /**
-     * Open this navigation in the shared app drawer instead of the current
-     * context. Handled by the `navigationInterceptor` configured in router.ts.
+     * Open this navigation as a new panel (window) instead of navigating the
+     * current context. A string picks the host surface ('drawer' | 'modal' | …);
+     * `true` inherits the originating panel's surface (or the drawer when opened
+     * from a non-panel context). Handled by the `navigationInterceptor` in
+     * router.ts.
      */
-    drawer?: boolean
+    panel?: boolean | string
   }
 }

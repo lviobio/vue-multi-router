@@ -244,3 +244,33 @@ describe('async storage adapter end-to-end (manager level)', () => {
     await waitFor(() => restoredRouter.currentRoute.value.fullPath === '/page-b')
   })
 })
+
+describe('KeyValueStorageAdapter.namespace', () => {
+  it('reads/writes app state through the same backend, prefixed', async () => {
+    const adapter = new MemoryAdapter()
+    const store = adapter.namespace('panels:')
+
+    await store.setItem('list', '[1,2,3]')
+    expect(adapter.store.get('panels:list')).toBe('[1,2,3]') // same backend, prefixed key
+    expect(await store.getItem('list')).toBe('[1,2,3]')
+
+    await store.removeItem('list')
+    expect(await store.getItem('list')).toBeNull()
+    expect(adapter.store.has('panels:list')).toBe(false)
+  })
+
+  it('keeps app keys disjoint from the router history keys', async () => {
+    const adapter = new MemoryAdapter()
+    adapter.saveActiveContext('ctx-a') // a router-owned key
+    await adapter.namespace('panels:').setItem('list', 'x')
+    expect([...adapter.store.keys()].sort()).toEqual(
+      ['__multiRouterActiveContext', 'panels:list'].sort(),
+    )
+  })
+
+  it('works through an async backend', async () => {
+    const store = new MemoryAdapter(1).namespace('p:')
+    await store.setItem('k', 'v')
+    expect(await store.getItem('k')).toBe('v')
+  })
+})

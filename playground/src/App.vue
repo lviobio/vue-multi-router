@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { NConfigProvider, NMessageProvider } from 'naive-ui'
 import { MultiRouterContext } from '../../src'
-import AppDrawer from './views/AppDrawer.vue'
+import PanelSurfaces from './views/panels/PanelSurfaces.vue'
 </script>
 
 <template>
@@ -24,9 +24,9 @@ import AppDrawer from './views/AppDrawer.vue'
         <RouterView />
       </MultiRouterContext>
 
-      <!-- App-level drawer: a sibling context, so it can render any route on top
-           of whatever "main" is showing. Open it with a `drawer: true` navigation. -->
-      <AppDrawer />
+      <!-- Window manager: sibling surfaces (drawer, modal, …) that host panels,
+           each panel its own router context. Open one with a `panel` navigation. -->
+      <PanelSurfaces />
     </NMessageProvider>
   </NConfigProvider>
 </template>

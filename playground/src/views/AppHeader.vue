@@ -24,10 +24,6 @@ const subMenuOptions: NonNullable<MenuProps['options']> = [
     label: () => h(RouterLink, { to: '/demo/peek' }, { default: () => 'Peek' }),
     key: 'demo.peek',
   },
-  {
-    label: () => h(RouterLink, { to: '/demo/drawer' }, { default: () => 'Drawer' }),
-    key: 'demo.drawer',
-  },
 ]
 
 const subMenuThemeOverrides: NonNullable<MenuProps['themeOverrides']> = {

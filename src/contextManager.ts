@@ -4,11 +4,13 @@ import {
   immediateActivation,
 } from '@/activation-strategies'
 import {
+  type ContextStorageAdapter,
   isPromise,
   mapMaybePromise,
   MultiRouterHistoryManager,
   type MultiRouterHistoryManagerOptions,
   type MaybePromise,
+  SessionStorageAdapter,
 } from '@/history'
 import { shallowRef, type App } from 'vue'
 import type { RouteLocationRaw, Router, RouterHistory } from 'vue-router'
@@ -51,6 +53,10 @@ export class MultiRouterManagerInstance {
   private onContextInitListeners: ContextInitListener[] = []
   private readonly historyManager: MultiRouterHistoryManager
   private readonly activationStrategy: ActivationStrategy
+  // The resolved storage backend (the one passed in, or a SessionStorageAdapter
+  // default). Held so it can be retrieved via getStorageAdapter() — letting app
+  // code persist its own state through the same backend the router uses.
+  private readonly storageAdapter: ContextStorageAdapter
   private defaultContextKey: string | null = null
   private lastRegisteredKey: string | null = null
   // Guard timer for restoring a saved active context that hasn't registered yet
@@ -64,8 +70,12 @@ export class MultiRouterManagerInstance {
     activationStrategyFactory?: ActivationStrategyFactory,
   ) {
     const { history, ...historyOptions } = historyManagerOptions
+    // Resolve the adapter once here and share the instance with the history
+    // layer (same default class as the history layer's own — behavior unchanged).
+    this.storageAdapter = historyOptions.storageAdapter ?? new SessionStorageAdapter()
     this.historyManager = new MultiRouterHistoryManager(history, {
       ...historyOptions,
+      storageAdapter: this.storageAdapter,
       onContextActivate: (contextKey: string) => {
         // Activate context on popstate (browser back/forward)
         // Use updateHistory=false since we're responding to browser history change
@@ -87,6 +97,17 @@ export class MultiRouterManagerInstance {
 
   getHistoryManager() {
     return this.historyManager
+  }
+
+  /**
+   * The resolved storage backend (the configured adapter, or a default
+   * SessionStorageAdapter). Exposed so app code that has the manager — e.g. via
+   * `inject(multiRouterContextManagerKey)` or a navigation interceptor — can
+   * persist its own state through the same backend (a KeyValueStorageAdapter
+   * additionally offers `.namespace(prefix)` for that).
+   */
+  getStorageAdapter(): ContextStorageAdapter {
+    return this.storageAdapter
   }
 
   getActiveContext() {

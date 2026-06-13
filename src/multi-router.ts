@@ -47,29 +47,29 @@ const getCurrentInstance = () =>
     provides: any
   }
 
+function isVueDevtoolsCall(): boolean {
+  return !!new Error().stack?.includes('chrome-extension://nhdogjmejiglipccpnnnanhbledajbpd')
+}
+
+function getInstanceContextKey(): string | null {
+  const instance = getCurrentInstance()
+
+  if (!instance) {
+    if (isVueDevtoolsCall()) return null
+    throw new Error('No instance found')
+  }
+
+  const contextKey = instance.provides[multiRouterContext]
+  if (!contextKey) {
+    throw new Error('Context key not found')
+  }
+
+  return contextKey
+}
+
 function installContextAwareRouterResolvers(app: App, contextManager: MultiRouterManagerInstance) {
   if (app._context.provides[routerKey]) {
     throw new Error('Router installed to app, this may cause unexpected behavior')
-  }
-
-  function isVueDevtoolsCall(): boolean {
-    return !!new Error().stack?.includes('chrome-extension://nhdogjmejiglipccpnnnanhbledajbpd')
-  }
-
-  function getInstanceContextKey(): string | null {
-    const instance = getCurrentInstance()
-
-    if (!instance) {
-      if (isVueDevtoolsCall()) return null
-      throw new Error('No instance found')
-    }
-
-    const contextKey = instance.provides[multiRouterContext]
-    if (!contextKey) {
-      throw new Error('Context key not found')
-    }
-
-    return contextKey
   }
 
   const routerProperty = {

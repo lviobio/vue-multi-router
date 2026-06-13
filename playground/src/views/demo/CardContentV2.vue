@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { NCard, NInput, NSpace, NText } from 'naive-ui'
-import { reactive, ref, useTemplateRef, watch } from 'vue'
+import { computed, reactive, ref, useTemplateRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { onMultiRouterContextActivate, useMultiRouterContext } from '../../../../src'
 
@@ -21,6 +21,18 @@ const values = reactive({
   value: '',
   number: 0 as number | null,
 })
+
+// Read by the panel host (PanelView) when this card is opened as a modal window,
+// so the window header reflects the card — live as you type.
+defineExpose({ title: computed(() => values.value || props.title || 'Card') })
+
+// Open this card's content (with its current form state) as a draggable modal
+// window. The `panel` flag is handled by the navigation interceptor (router.ts);
+// from there the panel header lets you move it to the drawer, expand it or close
+// it. The card stays in the grid — the modal is its own independent context.
+function toModal() {
+  router.push({ path: route.path, query: { ...route.query }, panel: 'modal' })
+}
 
 onMultiRouterContextActivate(async () => {
   setTimeout(() => {
@@ -117,6 +129,7 @@ async function handleTypeSomething() {
         <NButton size="tiny" @click="router.push({ name: 'demo.cards.wrapper.content' })">
           Navigate to previous version
         </NButton>
+        <NButton size="tiny" secondary @click="toModal">To modal</NButton>
       </NSpace>
     </template>
   </NCard>

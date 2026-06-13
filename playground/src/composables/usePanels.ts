@@ -35,6 +35,10 @@ export type Panel = LibPanel<PanelMeta>
 export interface PlaygroundPanels {
   panels: Ref<Panel[]>
   contextName: (panel: Panel) => string
+  /** The panel that currently owns the active router context, or null if none does. */
+  current: (manager: MultiRouterManagerInstance) => Panel | null
+  /** The panel hosted in the given router context, or null if that context isn't a panel. */
+  byContextKey: (contextKey: string) => Panel | null
   open: (
     location: RouteLocationRaw,
     surface: string,
@@ -72,6 +76,13 @@ export function createPanels(storage: KeyValueStore): PlaygroundPanels {
   return {
     panels: pm.panels,
     contextName: pm.contextName,
+    current: (manager) => {
+      const key = manager.getActiveContext()?.key
+      if (!key) return null
+      return pm.panels.value.find((p) => pm.contextName(p) === key) ?? null
+    },
+    byContextKey: (contextKey) =>
+      pm.panels.value.find((p) => pm.contextName(p) === contextKey) ?? null,
     open: (location, surface, manager) =>
       pm.open(location, surface, { rect: defaultRect() }, manager),
     moveTo: pm.moveTo,

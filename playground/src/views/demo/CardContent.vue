@@ -1,26 +1,39 @@
 <script setup lang="ts">
-import { NCard, NInput, NInputNumber, NSpace, NText } from 'naive-ui'
-import { reactive, ref, useTemplateRef, watch } from 'vue'
+import { NButton, NCard, NInput, NInputNumber, NSpace, NText } from 'naive-ui'
+import { computed, reactive, ref, useTemplateRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { onMultiRouterContextActivate, useMultiRouterContext } from '../../../../src'
+import {
+  onMultiRouterContextActivate,
+  useMultiRouter,
+  useMultiRouterContext,
+} from '../../../../src'
+import { surfaceMetas } from '../../composables/surface-meta'
+import { usePanels } from '../../composables/usePanels'
 
 const router = useRouter()
 const route = useRoute()
 
 const props = defineProps<{
   title?: string
+  closable?: boolean
 }>()
 
-const emit = defineEmits(['remove'])
+const emit = defineEmits(['close'])
 
 const inputRef = useTemplateRef('inputRef')
 
-const { isActive, historyEnabled } = useMultiRouterContext()
+const { isActive, historyEnabled, contextKey } = useMultiRouterContext()
+const { manager } = useMultiRouter()
+const panels = usePanels()
 
 const values = reactive({
   value: '',
   number: 0 as number | null,
 })
+
+// Read by the panel host (PanelView) when this card is opened as a modal window,
+// so the window header reflects the card — live as you type.
+defineExpose({ title: computed(() => values.value || props.title || 'Card') })
 
 onMultiRouterContextActivate(async () => {
   setTimeout(() => {
@@ -75,27 +88,43 @@ async function handleTypeSomething() {
     size="small"
     style="min-height: 130px"
     :segmented="{ content: true }"
-    closable
-    @close="emit('remove')"
+    :closable="props.closable"
+    @close="emit('close')"
   >
     <template #header>
-      <NText>
-        {{ props.title || 'Card' }}
-      </NText>
-      <NPopover trigger="hover">
-        <template #trigger>
-          <NBadge :offset="[12, -8]" :type="historyEnabled ? 'success' : 'error'">
-            <template #value>
-              <span>H</span>
+      <div class="flex justify-between">
+        <div>
+          <NText>
+            {{ props.title || 'Card' }}
+          </NText>
+          <NPopover trigger="hover">
+            <template #trigger>
+              <NBadge :offset="[12, -8]" :type="historyEnabled ? 'success' : 'error'">
+                <template #value>
+                  <span>H</span>
+                </template>
+              </NBadge>
             </template>
-          </NBadge>
-        </template>
-        <NText v-if="historyEnabled">
-          <p>History is syncing with browser url when active</p>
-          <p>Try to create a new card without history checked</p>
-        </NText>
-        <NText v-else>History is not syncing with browser url</NText>
-      </NPopover>
+            <NText v-if="historyEnabled">
+              <p>History is syncing with browser url when active</p>
+              <p>Try to create a new card without history checked</p>
+            </NText>
+            <NText v-else>History is not syncing with browser url</NText>
+          </NPopover>
+        </div>
+        <div v-if="!panels.byContextKey(contextKey)" class="flex gap-1">
+          <NButton
+            v-for="s in surfaceMetas"
+            :key="s.id"
+            size="tiny"
+            tertiary
+            @click="panels.open(route.fullPath, s.id, manager)"
+            :title="s.label"
+          >
+            <NIcon :size="20"><component :is="s.icon" /></NIcon>
+          </NButton>
+        </div>
+      </div>
     </template>
     <NSpace size="small">
       <NSpace :wrap="false">

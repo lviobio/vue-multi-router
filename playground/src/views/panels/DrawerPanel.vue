@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, provide, ref } from 'vue'
+import { computed, onMounted, provide, ref } from 'vue'
 import { NDrawer, NDrawerContent } from 'naive-ui'
 import { useMultiRouter } from '../../../../src'
 import { panelCloseKey, usePanels, type Panel } from '../../composables/usePanels'
@@ -13,8 +13,14 @@ import PanelHeader from './PanelHeader.vue'
 // router context registers right away and `open()` can activate it immediately —
 // rather than a tick later once the drawer finishes opening.
 const props = defineProps<{ panel: Panel; width: number; zIndex: number }>()
-const { manager } = useMultiRouter()
+const { manager, activeContextKey } = useMultiRouter()
 const { close, wasRestored, contextName } = usePanels()
+
+// Highlight the drawer like a Card when its context owns the URL. The ring is a
+// ::after pseudo-element (see <style>) faded via its own opacity transition — not
+// a border (would shift the cascade's sizes) and not the drawer's own box-shadow
+// (overriding the drawer's `transition` would kill naive's slide-in animation).
+const isActive = computed(() => activeContextKey.value === contextName(props.panel))
 
 // Clicking anywhere in the drawer makes its context active (it takes over the
 // URL). Drawers keep their cascade order, so — unlike windows — this doesn't
@@ -47,6 +53,7 @@ function afterLeave() {
     :width="width"
     placement="left"
     :z-index="zIndex"
+    :class="['panel-drawer', { 'drawer-active': isActive }]"
     display-directive="show"
     :show-mask="false"
     :mask-closable="false"
@@ -63,3 +70,21 @@ function afterLeave() {
     </NDrawerContent>
   </NDrawer>
 </template>
+
+<!-- NDrawer teleports to <body>, so scoped styles can't reach it. The ring lives
+     on a ::after so its opacity can fade independently of the drawer's own
+     `transition` (which naive uses for the slide-in/out). -->
+<style>
+.n-drawer.panel-drawer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border: 1px solid var(--color-green-600);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.n-drawer.panel-drawer.drawer-active::after {
+  opacity: 1;
+}
+</style>

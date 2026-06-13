@@ -13,8 +13,11 @@ import PanelHeader from './PanelHeader.vue'
 // can't be persisted — neither fits a multi-window, position-remembering surface.
 const props = defineProps<{ panel: Panel }>()
 
-const { manager } = useMultiRouter()
-const { focus, setRect } = usePanels()
+const { manager, activeContextKey } = useMultiRouter()
+const { focus, setRect, contextName } = usePanels()
+
+// Highlight the window like a Card when its context owns the URL.
+const isActive = computed(() => activeContextKey.value === contextName(props.panel))
 
 const style = computed(() => ({
   left: `${props.panel.meta.rect.x}px`,
@@ -61,7 +64,12 @@ function onBarPointerUp(e: PointerEvent) {
 
 <template>
   <div class="floating-window" :style="style" @pointerdown="focus(panel.id, manager)">
-    <NCard size="small" :bordered="true" content-style="max-height: 60vh; overflow: auto;">
+    <NCard
+      size="small"
+      :bordered="true"
+      content-style="max-height: 60vh; overflow: auto;"
+      :theme-overrides="{ borderColor: isActive ? 'var(--color-green-600)' : undefined }"
+    >
       <template #header>
         <div
           class="drag-bar"

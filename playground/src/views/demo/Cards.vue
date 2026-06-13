@@ -105,7 +105,7 @@ useTitle(pageTitle)
           :history-enabled="card.history"
           prevent-class="n-card-header__close"
         >
-          <RouterView :title="card.name" @remove="removeCard(card.position)" />
+          <RouterView :title="card.name" @close="removeCard(card.position)" :closable="true" />
         </MultiRouterContext>
       </NGi>
 

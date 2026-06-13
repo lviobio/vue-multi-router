@@ -5,6 +5,7 @@ import { useMultiRouter } from '../../../../src'
 import { surfaceMetas } from '../../composables/surface-meta'
 import { panelCloseKey, usePanels, type Panel } from '../../composables/usePanels'
 import { CloseIcon } from 'naive-ui/es/_internal/icons'
+import { ArrowExpand20Regular } from '@vicons/fluent'
 
 // Shared header for every surface: the title plus the universal panel
 // actions. The "→ {label}" buttons are generated from the surface registry, so a
@@ -37,10 +38,19 @@ async function expand() {
   <div class="flex items-center gap-2 w-full">
     <span class="font-medium truncate">{{ title }}</span>
     <div class="panel-actions ml-auto flex items-center gap-1">
-      <NButton v-for="s in otherSurfaces" :key="s.id" size="tiny" tertiary @click="moveTo_(s.id)">
-        → {{ s.label }}
+      <NButton
+        v-for="s in otherSurfaces"
+        :key="s.id"
+        size="tiny"
+        tertiary
+        @click="moveTo_(s.id)"
+        :title="s.label"
+      >
+        <NIcon :size="20"><component :is="s.icon" /></NIcon>
       </NButton>
-      <NButton size="tiny" tertiary @click="expand">Expand</NButton>
+      <NButton size="tiny" tertiary @click="expand" title="Expand">
+        <NIcon :size="20"><ArrowExpand20Regular /></NIcon>
+      </NButton>
       <NButton size="tiny" quaternary circle @click="requestClose">
         <NIcon><CloseIcon /></NIcon>
       </NButton>

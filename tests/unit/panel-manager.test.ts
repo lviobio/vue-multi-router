@@ -60,14 +60,14 @@ describe('createPanelManager', () => {
     expect(id).toBe('panel-1')
     expect(pm.panels.value).toHaveLength(1)
     expect(pm.panels.value[0]).toMatchObject({ id: 'panel-1', epoch: 1, surface: 'drawer', z: 1 })
-    expect(calls).toEqual(['panel-1__1']) // activated after registration
+    expect(calls).toEqual(['panel-1_1']) // activated after registration
   })
 
   it('derives context name from id + epoch', async () => {
     const { manager } = fakeManager()
     const pm = createPanelManager({ storage: memStore() })
     await pm.open('/a', 'drawer', {}, manager)
-    expect(pm.contextName(pm.panels.value[0])).toBe('panel-1__1')
+    expect(pm.contextName(pm.panels.value[0])).toBe('panel-1_1')
   })
 
   it('reclaims ids and z when panels close (no standing counter)', async () => {
@@ -99,19 +99,19 @@ describe('createPanelManager', () => {
     const after = pm.contextName(pm.panels.value[0])
 
     expect(pm.panels.value[0]).toMatchObject({ surface: 'modal', epoch: 2 })
-    expect(before).toBe('panel-1__1')
-    expect(after).toBe('panel-1__2')
+    expect(before).toBe('panel-1_1')
+    expect(after).toBe('panel-1_2')
     expect(after).not.toBe(before)
   })
 
   it('re-asserts activation after moving the panel that owned the URL', async () => {
     const { manager, calls } = fakeManager()
     const pm = createPanelManager({ storage: memStore() })
-    await pm.open('/a', 'drawer', {}, manager) // open activates panel-1__1
+    await pm.open('/a', 'drawer', {}, manager) // open activates panel-1_1
     calls.length = 0
 
     await pm.moveTo('panel-1', 'modal', manager)
-    expect(calls).toEqual(['panel-1__2']) // pulled the URL back to the moved panel
+    expect(calls).toEqual(['panel-1_2']) // pulled the URL back to the moved panel
   })
 
   it('does not re-activate a move of a non-active panel', async () => {
@@ -133,7 +133,7 @@ describe('createPanelManager', () => {
 
     pm.focus('panel-1', manager) // behind → raise
     expect(pm.panels.value.find((p) => p.id === 'panel-1')!.z).toBe(3)
-    expect(calls).toEqual(['panel-1__1'])
+    expect(calls).toEqual(['panel-1_1'])
 
     calls.length = 0
     pm.focus('panel-1', manager) // already on top → no-op for z, still activates
@@ -191,6 +191,6 @@ describe('createPanelManager', () => {
     const pm = createPanelManager({ storage: memStore(), idPrefix: 'win' })
     await pm.open('/a', 'modal', {}, manager)
     expect(ids(pm)).toEqual(['win-1'])
-    expect(pm.contextName(pm.panels.value[0])).toBe('win-1__1')
+    expect(pm.contextName(pm.panels.value[0])).toBe('win-1_1')
   })
 })

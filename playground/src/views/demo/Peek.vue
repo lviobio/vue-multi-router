@@ -1,6 +1,17 @@
 <script setup lang="ts">
 import { NButton, NH1, NTable, NText } from 'naive-ui'
 import { tasks } from './tasks'
+import { ChevronDown20Filled } from '@vicons/fluent'
+import { useRouter } from 'vue-router'
+import { surfaceMetas } from '../../composables/surface-meta'
+
+const router = useRouter()
+
+const openOptions = surfaceMetas.map((s) => ({ label: `In ${s.label}`, key: s.id }))
+
+function handleSelect(taskId: number, key: string) {
+  router.push({ name: 'tasks.show', params: { id: taskId }, panel: key })
+}
 </script>
 
 <template>
@@ -32,13 +43,27 @@ import { tasks } from './tasks'
           <td>{{ task.title }}</td>
           <td>{{ task.deadline }}</td>
           <td>
-            <RouterLink
-              :to="{ name: 'tasks.show', params: { id: task.id }, panel: 'drawer' }"
-              #="{ navigate, href }"
-              custom
-            >
-              <NButton size="small" tag="a" :href="href" @click="navigate">Open</NButton>
-            </RouterLink>
+            <NButtonGroup size="small">
+              <RouterLink
+                :to="{ name: 'tasks.show', params: { id: task.id } }"
+                #="{ navigate, href }"
+                custom
+              >
+                <NButton size="small" tag="a" :href="href" @click="navigate">Open</NButton>
+              </RouterLink>
+              <NDropdown
+                trigger="click"
+                size="small"
+                :options="openOptions"
+                @select="(panel: string) => handleSelect(task.id, panel)"
+              >
+                <NButton circle>
+                  <template #icon>
+                    <NIcon><ChevronDown20Filled /></NIcon>
+                  </template>
+                </NButton>
+              </NDropdown>
+            </NButtonGroup>
           </td>
         </tr>
       </tbody>

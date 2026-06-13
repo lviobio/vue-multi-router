@@ -72,6 +72,14 @@ export interface PanelManager<Meta> {
   focus(id: string, manager?: MultiRouterManagerInstance): void
   /** Merge into a panel's `meta`. Pass `{ persist: false }` for hot paths (drag). */
   update(id: string, meta: Partial<Meta>, opts?: { persist?: boolean }): void
+  /**
+   * Persist the routed location a panel currently shows, so in-panel navigation
+   * (editing fields, following links) survives reload. This is the *stored* value
+   * only — it does not re-force the live context (which would remount it); feed
+   * the captured initial location to the context's `location` prop and call this
+   * from its `update:location` to keep the persisted copy current.
+   */
+  setLocation(id: string, location: RouteLocationRaw): void
   /** Whether `id` was restored from storage at creation (use to skip enter animations). */
   wasRestored(id: string): boolean
   /** Forget the restored set, once the first render has settled. */
@@ -202,6 +210,13 @@ export function createPanelManager<Meta = Record<string, unknown>>(
     if (opts?.persist !== false) persist()
   }
 
+  function setLocation(id: string, location: RouteLocationRaw) {
+    const panel = find(id)
+    if (!panel || panel.location === location) return
+    panel.location = location
+    persist()
+  }
+
   return {
     panels,
     contextName,
@@ -210,6 +225,7 @@ export function createPanelManager<Meta = Record<string, unknown>>(
     close,
     focus,
     update,
+    setLocation,
     wasRestored: (id: string) => restoredIds.has(id),
     clearRestored: () => restoredIds.clear(),
   }

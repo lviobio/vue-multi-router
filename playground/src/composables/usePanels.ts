@@ -49,6 +49,7 @@ export interface PlaygroundPanels {
   focus: (id: string, manager?: MultiRouterManagerInstance) => void
   setRect: (id: string, rect: Partial<PanelRect>, opts?: { persist?: boolean }) => void
   setTitle: (id: string, title: string | undefined) => void
+  setLocation: (id: string, location: RouteLocationRaw) => void
   wasRestored: (id: string) => boolean
   clearRestored: () => void
 }
@@ -96,6 +97,7 @@ export function createPanels(storage: KeyValueStore): PlaygroundPanels {
       const panel = find(id)
       if (panel && panel.meta.title !== title) pm.update(id, { title })
     },
+    setLocation: pm.setLocation,
     wasRestored: pm.wasRestored,
     clearRestored: pm.clearRestored,
   }
